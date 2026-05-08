@@ -1,1 +1,55 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, "Times New Roman", serif;
+  --font-reading: "Literata", ui-serif, Georgia, "Times New Roman", serif;
+  --color-va-ink: #101520;
+  --color-va-ink-soft: #1c2435;
+  --color-va-paper: #fbf6ec;
+  --color-va-paper-deep: #f2e9db;
+  --color-va-mist: #e8dfd2;
+  --color-va-rust: #b45309;
+  --color-va-rust-bright: #ea580c;
+  --color-va-teal: #0f766e;
+  --color-va-ink-muted: #5c5a53;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply min-h-dvh bg-va-paper font-reading text-va-ink antialiased dark:bg-zinc-950 dark:text-[#eae3d9];
+    background-image:
+      radial-gradient(900px 420px at 12% -8%, oklch(0.93 0.09 65 / 0.35), transparent 62%),
+      radial-gradient(700px 360px at 88% 0%, oklch(0.88 0.06 185 / 0.22), transparent 55%);
+  }
+
+  ::selection {
+    @apply bg-va-rust/25 text-va-ink;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@keyframes va-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -26,69 +26,77 @@ export function SummaryPanel({
   return (
     <aside
       className={[
-        'rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950',
+        'relative isolate overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.92)_0%,rgb(251_246_236/0.75)_46%,rgb(255_255_255/0.55)_100%)] p-px shadow-[0_18px_45px_-34px_rgb(24_31_46/0.45)] backdrop-blur-[1px] dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.95)_0%,rgb(18_21_30/0.92)_55%,rgb(16_18_28/0.98)_100%)] dark:shadow-[0_24px_60px_-40px_rgb(0_0_0/0.75)]',
         className ?? '',
       ].join(' ')}
     >
-      <header className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+      <div className="pointer-events-none absolute -right-16 top-0 h-40 w-40 rounded-full bg-va-rust/10 blur-3xl dark:bg-va-rust-bright/12" />
+      <div className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-va-teal/10 blur-2xl dark:bg-va-teal/18" />
+
+      <div className="relative space-y-5 rounded-[1.15rem] bg-white/80 p-6 dark:bg-zinc-950/50">
+        <header className="space-y-2">
+          <p className="font-reading text-[11px] font-semibold uppercase tracking-[0.22em] text-va-ink-muted dark:text-[#a9a29a]">
+            Synthèse
+          </p>
+          <h2 className="font-display text-2xl font-semibold tracking-[-0.03em] text-va-ink dark:text-[#f3eee6]">
             Résumé IA
           </h2>
-          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-            {hasArticle
-              ? `Pour : ${article?.titre}`
-              : 'Sélectionne un article pour générer un résumé.'}
+          <p className="font-reading text-sm leading-relaxed text-va-ink-muted dark:text-[#c9c0b3]">
+            {hasArticle ? (
+              <>
+                Article actif :{' '}
+                <span className="font-semibold text-va-ink-soft dark:text-[#ede6dc]">{article?.titre}</span>
+              </>
+            ) : (
+              'Choisis un article dans la liste pour lancer une synthèse mock.'
+            )}
           </p>
-        </div>
+        </header>
 
-        <div className="flex shrink-0 items-center gap-2">
-          {onClear ? (
-            <button
-              type="button"
-              onClick={onClear}
-              disabled={!canClear}
-              className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-900 shadow-sm transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50 dark:hover:bg-zinc-900"
-            >
-              Effacer
-            </button>
-          ) : null}
-
+        <div className="flex flex-wrap items-center gap-3">
           {onGenerate ? (
             <button
               type="button"
               onClick={onGenerate}
               disabled={!canGenerate}
-              className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-white"
+              className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition enabled:hover:-translate-y-0.5 enabled:hover:bg-va-ink-soft disabled:cursor-not-allowed disabled:opacity-55 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:enabled:hover:bg-white"
             >
-              {isLoading ? 'Génération…' : 'Générer'}
+              {isLoading ? 'Génération…' : 'Générer un résumé'}
+            </button>
+          ) : null}
+
+          {onClear ? (
+            <button
+              type="button"
+              onClick={onClear}
+              disabled={!canClear}
+              className="inline-flex items-center justify-center rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition enabled:hover:border-va-rust/40 enabled:hover:bg-va-paper-deep/50 disabled:cursor-not-allowed disabled:opacity-45 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:enabled:hover:bg-zinc-900/60"
+            >
+              Réinitialiser
             </button>
           ) : null}
         </div>
-      </header>
 
-      <div className="mt-4">
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900 dark:border-red-950 dark:bg-red-950/40 dark:text-red-100">
+          <div
+            role="alert"
+            className="rounded-xl border border-red-200/90 bg-red-50/95 p-4 font-reading text-sm text-red-900 dark:border-red-900/60 dark:bg-red-950/45 dark:text-red-100"
+          >
             {error}
           </div>
         ) : null}
 
-        {summary ? (
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-sm leading-6 text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900/40 dark:text-zinc-100">
-            {summary}
-          </div>
-        ) : null}
-
-        {!summary && !error ? (
-          <div className="rounded-xl border border-dashed border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-            {hasArticle
-              ? 'Clique sur “Générer” pour obtenir un résumé.'
-              : 'Aucun article sélectionné.'}
-          </div>
-        ) : null}
+        <div className="min-h-34 rounded-xl border border-dashed border-va-mist/90 bg-va-paper-deep/35 p-4 font-reading text-sm leading-relaxed text-va-ink-soft dark:border-white/12 dark:bg-zinc-900/35 dark:text-[#d6cec3]">
+          {summary ? (
+            summary
+          ) : (
+            <span className="text-va-ink-muted dark:text-[#9c948a]">
+              Le texte généré apparaîtra ici. C&apos;est encore un flux simulé : parfait pour peaufiner
+              l&apos;UI avant de brancher un vrai modèle.
+            </span>
+          )}
+        </div>
       </div>
     </aside>
   )
 }
-
