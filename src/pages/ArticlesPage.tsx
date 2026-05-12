@@ -7,30 +7,26 @@ import { useArticleSummary } from '../hooks/useArticleSummary'
 import type { Article } from '../types/article'
 
 export function ArticlesPage() {
-  const { items, loading, error } = useArticles()
+  const { items, loading, error, reload } = useArticles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
     useArticleSummary()
 
-  useEffect(() => {
-    if (loading) return
-    if (items.length === 0) {
-      setSelectedId(null)
-      return
-    }
-
-    setSelectedId((prev) => prev ?? items[0]!.id)
-  }, [items, loading])
+  const effectiveSelectedId = useMemo(() => {
+    if (loading) return selectedId
+    if (items.length === 0) return null
+    return selectedId ?? items[0]!.id
+  }, [items, loading, selectedId])
 
   const selectedArticle: Article | null = useMemo(() => {
-    if (!selectedId) return null
-    return items.find((a) => a.id === selectedId) ?? null
-  }, [items, selectedId])
+    if (!effectiveSelectedId) return null
+    return items.find((a) => a.id === effectiveSelectedId) ?? null
+  }, [items, effectiveSelectedId])
 
   useEffect(() => {
     reset()
-  }, [selectedId, reset])
+  }, [effectiveSelectedId, reset])
 
   const onSelectArticle = useCallback((id: Article['id']) => {
     setSelectedId(id)
@@ -63,7 +59,7 @@ export function ArticlesPage() {
               Vigilant&nbsp;AI
             </h1>
             <p className="font-reading text-base leading-relaxed text-va-ink-soft dark:text-[#cbc3b7]">
-              Tableau de bord éditorial pour suivre une veille curatoriale : lis, sélectionne, puis{' '}
+              Tableau de bord éditorial pour suivre une veille curatoriale: lis, sélectionne, puis{' '}
               <span className="font-semibold text-va-ink dark:text-[#f3eee6]">
                 extrais une synthèse
               </span>{' '}
@@ -81,7 +77,7 @@ export function ArticlesPage() {
               </span>
             </div>
             <p className="text-xs leading-relaxed text-va-ink-muted dark:text-[#8f877c]">
-              Disposition en deux bandes : liste principale à gauche, panneau de synthèse ancré à
+              Disposition en deux bandes: liste principale à gauche, panneau de synthèse ancré à
               droite (sticky sur grand écran).
             </p>
           </div>
@@ -92,9 +88,30 @@ export function ArticlesPage() {
         {error ? (
           <div
             role="alert"
-            className="mb-8 rounded-2xl border border-red-200/90 bg-red-50 p-5 font-reading text-sm text-red-900 dark:border-red-900/55 dark:bg-red-950/40 dark:text-red-100"
+            className="mb-8 flex flex-col gap-4 rounded-2xl border border-red-200/90 bg-red-50 p-5 font-reading text-sm text-red-900 dark:border-red-900/55 dark:bg-red-950/40 dark:text-red-100"
           >
-            {error}
+            <div className="space-y-1">
+              <p className="font-semibold">Impossible de charger les sources.</p>
+              <p className="text-red-900/80 dark:text-red-100/85">{error}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={reload}
+                className="inline-flex items-center justify-center rounded-xl bg-red-900 px-4 py-2.5 font-reading text-sm font-semibold text-red-50 shadow-[0_14px_34px_-20px_rgb(120_11_11/0.55)] transition hover:-translate-y-0.5 hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
+              >
+                Réessayer
+              </button>
+              <a
+                href="https://github.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-xl border border-red-200/80 bg-white/70 px-4 py-2.5 font-reading text-sm font-semibold text-red-900/90 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:border-white/10 dark:bg-zinc-950/40 dark:text-red-100/90 dark:hover:bg-zinc-950/60"
+              >
+                Vérifier la connexion
+              </a>
+            </div>
           </div>
         ) : null}
 
@@ -119,15 +136,37 @@ export function ArticlesPage() {
                 </div>
               ) : items.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-va-mist/90 bg-white/55 p-10 text-center font-reading text-sm text-va-ink-muted dark:border-white/10 dark:bg-zinc-950/30 dark:text-[#a39a91]">
-                  Aucun article mock pour le moment. Ajoute-en dans les données fictives ou branche un
-                  connecteur RSS.
+                  <p className="text-base font-semibold text-va-ink dark:text-[#f3eee6]">
+                    Aucun article à afficher pour le moment.
+                  </p>
+                  <p className="mt-2 leading-relaxed">
+                    Si tu viens de brancher un flux RSS, il peut être temporairement vide ou bloqué.
+                    Tu peux aussi ajouter/retirer des sources dans <code className="font-mono">server/config/sources.ts</code>.
+                  </p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={reload}
+                      className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
+                    >
+                      Recharger
+                    </button>
+                    <a
+                      href="https://hnrss.org/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:hover:bg-zinc-900/60"
+                    >
+                      Exemple de flux RSS
+                    </a>
+                  </div>
                 </div>
               ) : (
                 items.map((article, index) => (
                   <SelectableArticleCard
                     key={article.id}
                     article={article}
-                    isSelected={article.id === selectedId}
+                    isSelected={article.id === effectiveSelectedId}
                     onSelect={onSelectArticle}
                     styleIndex={index}
                   />

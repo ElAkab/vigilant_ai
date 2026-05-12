@@ -9,8 +9,9 @@ export type SummarizeArticleResult = {
   summary: string
 }
 
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+export type SummarizeArticleStreamParams = SummarizeArticleParams & {
+  signal?: AbortSignal
+  onDelta: (delta: string) => void
 }
 
 export async function summarizeArticle(
@@ -18,21 +19,106 @@ export async function summarizeArticle(
 ): Promise<SummarizeArticleResult> {
   const { article, maxLength = 280 } = params
 
-  // Mock: petite latence pour simuler un appel réseau/modèle.
-  await sleep(450)
+  const res = await fetch('/api/summarize', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({ article, maxLength }),
+  })
 
-  const base =
-    article.resume?.trim() ||
-    `Résumé indisponible. Source: ${new URL(article.urlSource).hostname}.`
-
-  const normalized = base.replace(/\s+/g, ' ').trim()
-  const clipped =
-    normalized.length > maxLength
-      ? `${normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd()}…`
-      : normalized
-
-  return {
-    summary: `Résumé (mock) — ${clipped}`,
+  if (!res.ok) {
+    let message = `Erreur réseau (${res.status})`
+    try {
+      const body = (await res.json()) as { error?: { message?: string } }
+      message = body.error?.message?.trim() || message
+    } catch {
+      // ignore
+    }
+    throw new Error(message)
   }
+
+  const body = (await res.json()) as { summary?: string }
+  const summary = body.summary?.trim()
+  if (!summary) throw new Error('Réponse invalide du service de résumé')
+  return { summary }
+}
+
+export async function summarizeArticleStream(
+  params: SummarizeArticleStreamParams,
+): Promise<SummarizeArticleResult> {
+  const { article, maxLength = 280, onDelta, signal } = params
+
+  const res = await fetch('/api/summarize/stream', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'text/event-stream',
+    },
+    body: JSON.stringify({ article, maxLength }),
+    signal,
+  })
+
+  if (!res.ok) {
+    let message = `Erreur réseau (${res.status})`
+    try {
+      const body = (await res.json()) as { error?: { message?: string } }
+      message = body.error?.message?.trim() || message
+    } catch {
+      // ignore
+    }
+    throw new Error(message)
+  }
+
+  if (!res.body) {
+    // Fallback si l’environnement ne supporte pas les streams.
+    return await summarizeArticle({ article, maxLength })
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+
+  let buffer = ''
+  let finalSummary: string | null = null
+
+  const parseEvent = (raw: string): { event: string; data: string } | null => {
+    const lines = raw.split('\n')
+    let event = 'message'
+    let data = ''
+    for (const line of lines) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      if (line.startsWith('data:')) data += line.slice(5).trim()
+    }
+    if (!data) return null
+    return { event, data }
+  }
+
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+
+    let idx: number
+    while ((idx = buffer.indexOf('\n\n')) !== -1) {
+      const raw = buffer.slice(0, idx)
+      buffer = buffer.slice(idx + 2)
+      const parsed = parseEvent(raw)
+      if (!parsed) continue
+
+      if (parsed.event === 'chunk') {
+        const payload = JSON.parse(parsed.data) as { delta?: string }
+        if (payload.delta) onDelta(payload.delta)
+      } else if (parsed.event === 'done') {
+        const payload = JSON.parse(parsed.data) as { summary?: string }
+        finalSummary = payload.summary?.trim() || ''
+      } else if (parsed.event === 'error') {
+        const payload = JSON.parse(parsed.data) as { message?: string }
+        throw new Error(payload.message || 'Erreur lors du streaming')
+      }
+    }
+  }
+
+  return { summary: finalSummary ?? '' }
 }
 
