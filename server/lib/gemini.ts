@@ -7,9 +7,9 @@ export type GeminiClient = {
 }
 
 export function createGeminiClient(): GeminiClient {
-  const apiKey = process.env.GEMINI_API_KEY?.trim()
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim()
   if (!apiKey) {
-    throw new HttpError(500, 'CONFIG_MISSING', 'GEMINI_API_KEY manquant (configure-le côté serveur)')
+    throw new HttpError(500, 'CONFIG_MISSING', 'OPENROUTER_API_KEY manquant (configure-le côté serveur)')
   }
 
   const modelName = (process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash').toLowerCase()
