@@ -41,3 +41,28 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
 - Finis chaque interaction par : **ce qui a été fait**, **une ou deux propositions pour la prochaine étape logique** et **une question pertinente** pour encourager la collaboration et la réflexion.
 
 ---
+
+## ⚙️ Ajouts Workflow et Sécurité (recommandés)
+
+- **API IA (OpenRouter / OpenAI)**: le serveur doit utiliser une API compatible OpenAI (ex: OpenRouter). Stocke la clé dans `OPENROUTER_API_KEY` et le modèle dans `OPENROUTER_MODEL`. Ne pas coupler le code au SDK Google Gemini.
+- **Fallback et compatibilité**: si `OPENROUTER_API_KEY` est présent, le service doit appeler l'endpoint OpenAI‑style (`/v1/chat/completions`). Sinon, échouer proprement et documenter la configuration requise.
+- **Sécurité des secrets**: ne commite jamais de clés dans `.env`. Utiliser `.env.example` pour documenter les variables et ajouter `.env` à `.gitignore`. Revoke/rotate toute clé exposée immédiatement.
+
+## 🛠️ Gestion des erreurs et résilience
+
+- **Erreurs claires côté API**: renvoyer des codes HTTP précis (`500`/`502`/`429`/`400`) avec un code interne (`CONFIG_MISSING`, `AI_SERVICE_ERROR`, etc.) pour faciliter le debugging.
+- **Timeouts et retries**: ajouter des timeouts et un mécanisme de retry avec backoff pour les appels aux fournisseurs IA.
+- **Limitation coût/tokens**: tronquer les prompts et limiter la taille des payloads côté serveur avant d'appeler l'API IA.
+
+## 🤖 Intégration Assistant (Copilot / Claude Code)
+
+- **Copilot / GitHub**: préciser dans les instructions que les agents utilisent GPT-5 mini (interne) et que les commits doivent suivre Conventional Commits.
+- **Claude Code**: si on ajoute un agent Claude, documenter ses spécificités (format des prompts, limites de tokens) et prévoir un adaptateur pour unifier l'interface (`generateContent`, `generateContentStream`).
+
+## ✅ Checklist rapide avant PR
+
+- `.env` ne contient pas de secret.
+- `OPENROUTER_API_KEY` utilisé côté serveur, pas côté client.
+- Tests manuels: endpoint `/summarize` retourne `summary` sans erreur.
+- Les messages d'erreur sont internationalisés / compréhensibles.
+
