@@ -17,19 +17,20 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
 
 ## 📝 Règles de Code
 
-- **TypeScript**
-  - Utilise un **typage strict**.
-  - Évite `any` à tout prix.
-  - Privilégie les **interfaces** pour les objets, et les **types** pour les unions.
+- Critiques (respect impératif)
+  - **TypeScript**
+    - Utilise un **typage strict**.
+    - Évite `any` à tout prix.
+    - Privilégie les **interfaces** pour les objets, et les **types** pour les unions.
+  - **React**
+    - Utilise des **composants fonctionnels**.
+    - Utilise les **Hooks** modernes.
 
-- **React**
-  - Utilise des **composants fonctionnels** et les **Hooks** modernes.
-
-- **Style**
-  - Utilise **Tailwind CSS** pour un design moderne et responsive.
-
-- **Architecture**
-  - Sépare la **logique** (_hooks_), les **types** (_interfaces_), et la **vue** (_composants_).
+- Bonnes pratiques (prioritaires mais adaptables)
+  - **Style**
+    - Utilise **Tailwind CSS** pour un design moderne et responsive.
+  - **Architecture**
+    - Sépare la **logique** (_hooks_), les **types** (_interfaces_), et la **vue** (_composants_).
 
 ---
 
