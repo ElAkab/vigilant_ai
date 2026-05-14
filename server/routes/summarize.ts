@@ -1,7 +1,7 @@
 import type { Article } from '../../src/types/article'
 import { TTLCache } from '../lib/cache'
 import { HttpError, json } from '../lib/http'
-import { createGeminiClient } from '../lib/gemini'
+import { globalAIService } from '../lib/aiService'
 import { checkRateLimit } from '../lib/rateLimit'
 
 type SummarizeBody = {
@@ -73,10 +73,9 @@ export async function handleSummarize(req: Request): Promise<Response> {
   const cached = summaryCache.get(key)
   if (cached) return json({ summary: cached, cached: true })
 
-  const { model } = createGeminiClient()
   const prompt = makePrompt(body.article, maxLength)
 
-  const result = await model.generateContent(prompt)
+  const result = await globalAIService.generateContent(prompt)
   const text = result.response.text()?.replace(/\s+/g, ' ').trim() ?? ''
   const summary = clip(text || `Résumé indisponible. Source: ${body.article.urlSource}`, maxLength)
 
@@ -125,7 +124,7 @@ export async function handleSummarizeStream(req: Request): Promise<Response> {
     )
   }
 
-  const { model } = createGeminiClient()
+  const { model } = await createGeminiClient()
   const prompt = makePrompt(body.article, maxLength)
   const encoder = new TextEncoder()
 
@@ -140,7 +139,7 @@ export async function handleSummarizeStream(req: Request): Promise<Response> {
       try {
         send('meta', { cached: false })
 
-        const result = await model.generateContentStream(prompt)
+        const result = await globalAIService.generateContentStream(prompt)
         for await (const chunk of result.stream) {
           if (req.signal.aborted) break
           const text = chunk.text()

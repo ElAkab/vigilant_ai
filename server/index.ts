@@ -1,6 +1,8 @@
 import { errorResponse } from './lib/http'
 import { handleListArticles } from './routes/articles'
 import { handleSummarize, handleSummarizeStream } from './routes/summarize'
+import { handleGetModelStatus } from './routes/debug'
+import { globalAIService } from './lib/aiService'
 
 const port = Number(process.env.PORT ?? '8787')
 
@@ -10,6 +12,7 @@ function route(req: Request): Promise<Response> | Response {
   if (url.pathname === '/api/articles') return handleListArticles(req)
   if (url.pathname === '/api/summarize') return handleSummarize(req)
   if (url.pathname === '/api/summarize/stream') return handleSummarizeStream(req)
+  if (url.pathname === '/api/debug/models') return handleGetModelStatus(req)
 
   return new Response('Not found', { status: 404 })
 }
