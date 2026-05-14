@@ -47,6 +47,7 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
 - **API IA (OpenRouter / OpenAI)**: le serveur doit utiliser une API compatible OpenAI (ex: OpenRouter). Stocke la clé dans `OPENROUTER_API_KEY` et le modèle dans `OPENROUTER_MODEL`. Ne pas coupler le code au SDK Google Gemini.
 - **Fallback et compatibilité**: si `OPENROUTER_API_KEY` est présent, le service doit appeler l'endpoint OpenAI‑style (`/v1/chat/completions`). Sinon, échouer proprement et documenter la configuration requise.
 - **Sécurité des secrets**: ne commite jamais de clés dans `.env`. Utiliser `.env.example` pour documenter les variables et ajouter `.env` à `.gitignore`. Revoke/rotate toute clé exposée immédiatement.
+- **MCP**: Prendre en compte Context7 pour la gestion des conversations et du contexte, en utilisant `CONTEXT7_API_KEY` côté serveur.
 
 ## 🛠️ Gestion des erreurs et résilience
 
@@ -65,4 +66,3 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
 - `OPENROUTER_API_KEY` utilisé côté serveur, pas côté client.
 - Tests manuels: endpoint `/summarize` retourne `summary` sans erreur.
 - Les messages d'erreur sont internationalisés / compréhensibles.
-

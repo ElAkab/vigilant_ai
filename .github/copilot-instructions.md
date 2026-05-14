@@ -30,7 +30,8 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
   - **Style**
     - Utilise **Tailwind CSS** pour un design moderne et responsive.
   - **Architecture**
-    - Sépare la **logique** (_hooks_), les **types** (_interfaces_), et la **vue** (_composants_).
+    - Sépare la **logique** (_hooks_), les **types** (_interfaces_), et la **vue**. (_composants_). Et avant tout changement majeur, regarde si l'architecture existe déjà pour éviter les redondances.
+    - **MCP**: Prendre en compte **Context7** pour la gestion des conversations et du contexte, en utilisant `CONTEXT7_API_KEY` côté serveur.
 
 ---
 
