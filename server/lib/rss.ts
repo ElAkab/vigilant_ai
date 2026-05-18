@@ -34,29 +34,31 @@ function normalizeDate(isoLike: string | undefined): string {
 }
 
 function extractImageUrl(item: any): string | undefined {
-  if (item.enclosure && item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
-    return item.enclosure.url;
+  if (item.enclosure) {
+    console.log(`[RSS] Enclosure trouvé pour "${item.title}":`, item.enclosure);
+    if (item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
+      return item.enclosure.url;
+    }
   }
   
   const mediaContent = item['media:content'];
-  if (mediaContent && mediaContent.$ && mediaContent.$.url) {
-    return mediaContent.$.url;
-  }
-  if (mediaContent && mediaContent.url) {
-    return mediaContent.url;
+  if (mediaContent) {
+    console.log(`[RSS] media:content trouvé pour "${item.title}":`, mediaContent);
+    if (mediaContent.$ && mediaContent.$.url) return mediaContent.$.url;
+    if (mediaContent.url) return mediaContent.url;
   }
 
   const mediaThumbnail = item['media:thumbnail'];
-  if (mediaThumbnail && mediaThumbnail.$ && mediaThumbnail.$.url) {
-    return mediaThumbnail.$.url;
-  }
-  if (mediaThumbnail && mediaThumbnail.url) {
-    return mediaThumbnail.url;
+  if (mediaThumbnail) {
+    console.log(`[RSS] media:thumbnail trouvé pour "${item.title}":`, mediaThumbnail);
+    if (mediaThumbnail.$ && mediaThumbnail.$.url) return mediaThumbnail.$.url;
+    if (mediaThumbnail.url) return mediaThumbnail.url;
   }
 
-  const content = item.content || item.contentSnippet || '';
+  const content = item['content:encoded'] || item.content || item.contentSnippet || '';
   const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
   if (match) {
+    console.log(`[RSS] <img> trouvé dans le contenu pour "${item.title}":`, match[1]);
     return match[1];
   }
 
@@ -89,6 +91,12 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
 
   const items = feed.items ?? []
   console.log(`[RSS] ${items.length} articles trouvés pour ${source.label}`);
+  
+  if (items.length > 0) {
+    console.log(`[RSS] Clés de l'item pour ${source.label}:`, Object.keys(items[0]));
+    const contentSample = items[0].content || items[0].contentSnippet || '';
+    console.log(`[RSS] Extrait contenu pour ${source.label}:`, contentSample.slice(0, 150));
+  }
 
   return items
     .map((item) => {
@@ -110,6 +118,7 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
         datePublication,
         urlSource,
         imageUrl,
+        sourceLabel: source.label,
       } satisfies Article
     })
     .filter((x): x is Article => Boolean(x))

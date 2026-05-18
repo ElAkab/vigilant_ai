@@ -20,6 +20,7 @@ function route(req: Request): Promise<Response> | Response {
 
 const server = Bun.serve({
 	port,
+	idleTimeout: 60, // En secondes, laisse le temps aux modèles gratuits de répondre
 	async fetch(req: Request) {
 		try {
 			const started = performance.now();

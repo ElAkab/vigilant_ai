@@ -20,15 +20,36 @@ interface ModelFailureInfo {
 }
 
 export class AIService {
-	private models: AIModel[];
+	private models: AIModel[] = [];
 	private currentModelIndex: number = 0;
 	private modelFailureLog: Map<string, ModelFailureInfo> = new Map();
 	private mockMode: boolean = false;
+	private initialized: boolean = false;
+	private initializingPromise: Promise<void> | null = null;
 
 	constructor(models?: AIModel[]) {
-		this.models = models ?? loadModelConfig();
+		if (models) {
+			this.models = models;
+			this.initialized = true;
+		}
 		this.mockMode = (getEnv("MOCK_AI") || "").toLowerCase() === "true";
 		this.validateConfiguration();
+	}
+
+	async ensureModelsLoaded(): Promise<void> {
+		if (this.initialized) return;
+		if (this.initializingPromise) return this.initializingPromise;
+
+		this.initializingPromise = (async () => {
+			try {
+				this.models = await loadModelConfig();
+				this.initialized = true;
+			} finally {
+				this.initializingPromise = null;
+			}
+		})();
+
+		return this.initializingPromise;
 	}
 
 	private validateConfiguration(): void {
@@ -40,6 +61,8 @@ export class AIService {
 	}
 
 	async generateContent(prompt: string): Promise<AIResponse> {
+		await this.ensureModelsLoaded();
+		
 		if (this.mockMode) {
 			return this.generateMockContent(prompt);
 		}
@@ -58,6 +81,7 @@ export class AIService {
 			} catch (err) {
 				lastError = err as Error;
 				this.recordFailure(model.id, (err as Error).message);
+				console.error(`[AI] Modèle ${model.id} en échec:`, (err as Error).message);
 				this.currentModelIndex =
 					(this.currentModelIndex + 1) % this.models.length;
 			}
@@ -73,6 +97,8 @@ export class AIService {
 	async generateContentStream(
 		prompt: string,
 	): Promise<{ stream: AsyncIterable<{ text: () => string }> }> {
+		await this.ensureModelsLoaded();
+		
 		if (this.mockMode) {
 			return this.generateMockContentStream(prompt);
 		}
@@ -136,7 +162,7 @@ export class AIService {
 	private async fetchWithTimeout(
 		url: string,
 		init: RequestInit,
-		timeoutMs = 8000,
+		timeoutMs = 30000, // 30 secondes pour les modèles gratuits lents
 	): Promise<Response> {
 		const controller = new AbortController();
 		const id = setTimeout(() => controller.abort(), timeoutMs);

@@ -10,6 +10,34 @@ type SummaryPanelProps = {
   className?: string
 }
 
+function renderMarkdown(text: string) {
+  const lines = text.split('\n');
+  const rendered = lines.map((line) => {
+    let processed = line;
+    // Gras
+    processed = processed.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-va-ink dark:text-[#ede6dc]">$1</strong>');
+    
+    // Titres (###)
+    if (processed.startsWith('### ')) {
+      return `<h3 class="font-display text-lg font-semibold mt-4 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(4)}</h3>`;
+    }
+    
+    // Puces (- )
+    if (processed.trim().startsWith('- ')) {
+      return `<li class="ml-4 list-disc text-va-ink-soft dark:text-[#d6cec3]">${processed.trim().slice(2)}</li>`;
+    }
+    
+    // Ligne vide
+    if (processed.trim() === '') {
+      return '<br />';
+    }
+    
+    return `<div>${processed}</div>`;
+  }).join('');
+  
+  return <div className="space-y-1" dangerouslySetInnerHTML={{ __html: rendered }} />;
+}
+
 export function SummaryPanel({
   article,
   summary,
@@ -88,7 +116,7 @@ export function SummaryPanel({
 
         <div className="min-h-34 rounded-xl border border-dashed border-va-mist/90 bg-va-paper-deep/35 p-4 font-reading text-sm leading-relaxed text-va-ink-soft dark:border-white/12 dark:bg-zinc-900/35 dark:text-[#d6cec3]">
           {summary ? (
-            summary
+            renderMarkdown(summary)
           ) : (
             <span className="text-va-ink-muted dark:text-[#9c948a]">
               Le texte généré apparaîtra ici. C&apos;est encore un flux simulé : parfait pour peaufiner

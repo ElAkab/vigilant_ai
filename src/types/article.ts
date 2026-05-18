@@ -5,5 +5,6 @@ export type Article = {
   datePublication: string
   urlSource: string
   imageUrl?: string
+  sourceLabel?: string
 }
 
