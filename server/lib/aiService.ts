@@ -103,13 +103,89 @@ export class AIService {
 			return this.generateMockContentStream(prompt);
 		}
 
-		// For now, generate full content and yield once
-		// In future, could implement actual streaming per model
-		const result = await this.generateContent(prompt);
+		const model = this.models[this.currentModelIndex];
+		if (!model) throw new Error("No AI models available");
+
+		const stream = this.callOpenRouterStream(model, prompt);
+		
 		async function* gen() {
-			yield { text: () => result.response.text() };
+			for await (const chunk of stream) {
+				yield { text: () => chunk };
+			}
 		}
+		
 		return { stream: gen() };
+	}
+
+	private async *callOpenRouterStream(
+		model: AIModel,
+		prompt: string,
+	): AsyncGenerator<string, void, unknown> {
+		const apiKey = getEnv("OPENROUTER_API_KEY");
+		if (!apiKey) {
+			throw new HttpError(500, "CONFIG_MISSING", "OPENROUTER_API_KEY manquant");
+		}
+
+		const body = {
+			model: model.id,
+			messages: [{ role: "user", content: prompt }],
+			temperature: model.temperature ?? 0.3,
+			top_p: 0.95,
+			stream: true,
+		};
+
+		const res = await this.fetchWithTimeout(model.endpoint, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify(body),
+		}, 30000);
+
+		if (!res.ok) {
+			const text = await res.text().catch(() => "");
+			throw new HttpError(
+				502,
+				"AI_SERVICE_ERROR",
+				`OpenRouter erreur (${model.id}): ${res.status} ${text}`,
+			);
+		}
+
+		const reader = res.body?.getReader();
+		if (!reader) throw new Error("No response body");
+
+		const decoder = new TextDecoder("utf-8");
+		let buffer = "";
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n");
+				buffer = lines.pop() ?? "";
+
+				for (const line of lines) {
+					const trimmed = line.trim();
+					if (!trimmed) continue;
+					if (trimmed === "data: [DONE]") return;
+					if (trimmed.startsWith("data: ")) {
+						const jsonStr = trimmed.slice(6);
+						try {
+							const data = JSON.parse(jsonStr);
+							const text = data.choices?.[0]?.delta?.content;
+							if (text) yield text;
+						} catch (e) {
+							// Ignore parse errors for incomplete lines
+						}
+					}
+				}
+			}
+		} finally {
+			reader.releaseLock();
+		}
 	}
 
 	private async callOpenRouter(

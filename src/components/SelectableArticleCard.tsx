@@ -7,6 +7,7 @@ type SelectableArticleCardProps = {
   article: Article
   isSelected: boolean
   onSelect: (id: Article['id']) => void
+  onGenerateSummary: (article: Article) => void
   styleIndex: number
 }
 
@@ -14,20 +15,29 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
   article,
   isSelected,
   onSelect,
+  onGenerateSummary,
   styleIndex,
 }: SelectableArticleCardProps) {
   const delayMs = Math.min(styleIndex, 8) * 55
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(article.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(article.id)
+        }
+      }}
       className={[
         'text-left',
         'w-full',
+        'block',
         '[content-visibility:auto]',
         '[contain-intrinsic-size:auto_240px]',
-        'rounded-[1.15rem] focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/70 focus-visible:ring-offset-2 focus-visible:ring-offset-va-paper dark:focus-visible:ring-offset-zinc-950',
+        'rounded-[1.15rem] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/70 focus-visible:ring-offset-2 focus-visible:ring-offset-va-paper dark:focus-visible:ring-offset-zinc-950',
         'transition-[transform,box-shadow,opacity] duration-300 ease-out',
         'motion-safe:animate-[va-card-in_0.55s_ease-out_both]',
         isSelected
@@ -37,7 +47,7 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
       style={{ animationDelay: `${delayMs}ms` }}
       aria-pressed={isSelected}
     >
-      <ArticleCard article={article} />
-    </button>
+      <ArticleCard article={article} onGenerateSummary={onGenerateSummary} />
+    </div>
   )
 })

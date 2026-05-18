@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { SelectableArticleCard } from '../components/SelectableArticleCard'
-import { SummaryPanel } from '../components/SummaryPanel'
+import { SummaryModal } from '../components/SummaryModal'
 import { useArticles } from '../hooks/useArticles'
 import { useArticleSummary } from '../hooks/useArticleSummary'
 import type { Article } from '../types/article'
@@ -9,6 +9,7 @@ import type { Article } from '../types/article'
 export function ArticlesPage() {
   const { items, loading, error, reload } = useArticles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
     useArticleSummary()
@@ -32,14 +33,15 @@ export function ArticlesPage() {
     setSelectedId(id)
   }, [])
 
-  const onGenerateSummary = useCallback(() => {
-    if (!selectedArticle) return
-    void generateSummary({ article: selectedArticle, maxLength: 280 })
-  }, [generateSummary, selectedArticle])
+  const onGenerateSummary = useCallback((article: Article) => {
+    setSelectedId(article.id)
+    setIsModalOpen(true)
+    void generateSummary({ article, maxLength: 1000 })
+  }, [generateSummary])
 
-  const onResetSummary = useCallback(() => {
-    reset()
-  }, [reset])
+  const onCloseModal = useCallback(() => {
+    setIsModalOpen(false)
+  }, [])
 
   return (
     <main className="min-h-dvh">
@@ -115,7 +117,7 @@ export function ArticlesPage() {
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
+        <div className="mx-auto max-w-3xl">
           <section className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -168,25 +170,24 @@ export function ArticlesPage() {
                     article={article}
                     isSelected={article.id === effectiveSelectedId}
                     onSelect={onSelectArticle}
+                    onGenerateSummary={onGenerateSummary}
                     styleIndex={index}
                   />
                 ))
               )}
             </div>
           </section>
-
-          <aside className="lg:sticky lg:top-8 lg:-translate-y-2 lg:self-start">
-            <SummaryPanel
-              article={selectedArticle}
-              summary={summary}
-              isLoading={summaryLoading}
-              error={summaryError}
-              onGenerate={onGenerateSummary}
-              onClear={onResetSummary}
-            />
-          </aside>
         </div>
       </div>
+
+      <SummaryModal
+        isOpen={isModalOpen}
+        onClose={onCloseModal}
+        article={selectedArticle}
+        summary={summary}
+        isLoading={summaryLoading}
+        error={summaryError}
+      />
     </main>
   )
 }

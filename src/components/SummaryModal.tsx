@@ -1,5 +1,5 @@
 import type { Article } from '../types/article'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -19,7 +19,17 @@ function renderMarkdown(text: string) {
     
     // Titres (###)
     if (processed.startsWith('### ')) {
-      return `<h3 class="font-display text-xl font-semibold mt-6 mb-3 text-va-ink dark:text-[#f3eee6]">${processed.slice(4)}</h3>`
+      return `<h3 class="font-display text-xl font-semibold mt-4 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(4)}</h3>`
+    }
+    
+    // Titres (##)
+    if (processed.startsWith('## ')) {
+      return `<h2 class="font-display text-2xl font-semibold mt-5 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(3)}</h2>`
+    }
+
+    // Titres (#)
+    if (processed.startsWith('# ')) {
+      return `<h1 class="font-display text-3xl font-semibold mt-6 mb-3 text-va-ink dark:text-[#f3eee6]">${processed.slice(2)}</h1>`
     }
     
     // Puces (- )
@@ -46,6 +56,24 @@ export function SummaryModal({
   isLoading,
   error,
 }: SummaryModalProps) {
+  const [showInsight, setShowInsight] = useState(false)
+
+  // Split summary into main text and insight
+  const parts = summary ? summary.split("### 💡 L'avis") : [summary, ""]
+  const mainSummary = parts[0]
+  const insight = parts[1] ? `### 💡 L'avis${parts[1]}` : ""
+
+  // Gère l'apparition différée de l'avis
+  useEffect(() => {
+    if (!isLoading && summary && insight) {
+      const timer = setTimeout(() => setShowInsight(true), 1500) // 1.5 seconde de délai
+      return () => clearTimeout(timer)
+    }
+    if (isLoading) {
+      setShowInsight(false)
+    }
+  }, [isLoading, summary, insight])
+
   // Fermer la modale avec Échap
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,7 +81,6 @@ export function SummaryModal({
     }
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown)
-      // Bloquer le scroll du body en arrière-plan
       document.body.style.overflow = 'hidden'
     }
     return () => {
@@ -93,14 +120,41 @@ export function SummaryModal({
             <div className="rounded-xl border border-red-200/90 bg-red-50/95 p-4 text-red-900 dark:border-red-900/60 dark:bg-red-950/45 dark:text-red-100">
               {error}
             </div>
+          ) : summary ? (
+            <div className="space-y-4">
+              {/* Synthèse principale */}
+              {renderMarkdown(mainSummary || '')}
+              
+              {/* Bloc Avis d'InsightStream avec animation */}
+              {insight && (
+                <div 
+                  className={[
+                    'mt-6 p-5 rounded-xl border transition-all duration-1000 ease-out transform',
+                    'border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5',
+                    showInsight 
+                      ? 'opacity-100 translate-y-0 scale-100' 
+                      : 'opacity-0 translate-y-4 scale-98 pointer-events-none'
+                  ].join(' ')}
+                >
+                  {renderMarkdown(insight)}
+                </div>
+              )}
+
+              {/* Loader pendant le streaming si l'avis n'est pas encore là */}
+              {isLoading && (
+                <div className="flex items-center space-x-2 py-4 text-va-ink-muted dark:text-[#a9a29a]">
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '0ms' }} />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '150ms' }} />
+                  <div className="h-2 w-2 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '300ms' }} />
+                </div>
+              )}
+            </div>
           ) : isLoading ? (
             <div className="flex items-center justify-center space-x-2 py-12 text-va-ink-muted dark:text-[#a9a29a]">
               <div className="h-4 w-4 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '0ms' }} />
               <div className="h-4 w-4 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '150ms' }} />
               <div className="h-4 w-4 animate-bounce rounded-full bg-va-rust/70" style={{ animationDelay: '300ms' }} />
             </div>
-          ) : summary ? (
-            renderMarkdown(summary)
           ) : null}
         </div>
 
