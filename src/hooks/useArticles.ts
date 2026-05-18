@@ -41,6 +41,7 @@ export function useArticles() {
   }, [])
 
   useEffect(() => {
+    cancelledRef.current = false
     reload()
 
     return () => {

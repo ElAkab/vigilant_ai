@@ -51,6 +51,8 @@ export async function handleListArticles(req: Request): Promise<Response> {
   }
 
   const merged = dedupeAndSort(results.flat())
+  console.log(`[Articles API] Fusionné ${merged.length} articles. Erreurs de sources:`, errors);
+  
   if (merged.length === 0) {
     throw new HttpError(502, 'RSS_UNAVAILABLE', errors[0]?.message ?? 'Aucune source RSS disponible')
   }

@@ -4,5 +4,6 @@ export type Article = {
   resume: string
   datePublication: string
   urlSource: string
+  imageUrl?: string
 }
 

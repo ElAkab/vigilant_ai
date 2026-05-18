@@ -46,10 +46,16 @@ function ArticleCardComponent({ article }: ArticleCardProps) {
             </p>
           </div>
 
-          <span
-            aria-hidden="true"
-            className="mt-1 hidden h-14 w-1 shrink-0 rounded-full bg-linear-to-b from-va-rust via-va-rust-bright to-va-teal opacity-90 shadow-[0_0_0_1px_rgb(255_255_255/0.35)] sm:block"
-          />
+          {article.imageUrl ? (
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-va-mist/50 dark:border-white/10">
+              <img src={article.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+            </div>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="mt-1 hidden h-14 w-1 shrink-0 rounded-full bg-linear-to-b from-va-rust via-va-rust-bright to-va-teal opacity-90 shadow-[0_0_0_1px_rgb(255_255_255/0.35)] sm:block"
+            />
+          )}
         </div>
 
         <p className="line-clamp-3 font-reading text-sm leading-relaxed text-va-ink-soft dark:text-[#d6cec3]">

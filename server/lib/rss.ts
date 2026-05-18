@@ -33,18 +33,53 @@ function normalizeDate(isoLike: string | undefined): string {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString()
 }
 
+function extractImageUrl(item: any): string | undefined {
+  if (item.enclosure && item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {
+    return item.enclosure.url;
+  }
+  
+  const mediaContent = item['media:content'];
+  if (mediaContent && mediaContent.$ && mediaContent.$.url) {
+    return mediaContent.$.url;
+  }
+  if (mediaContent && mediaContent.url) {
+    return mediaContent.url;
+  }
+
+  const mediaThumbnail = item['media:thumbnail'];
+  if (mediaThumbnail && mediaThumbnail.$ && mediaThumbnail.$.url) {
+    return mediaThumbnail.$.url;
+  }
+  if (mediaThumbnail && mediaThumbnail.url) {
+    return mediaThumbnail.url;
+  }
+
+  const content = item.content || item.contentSnippet || '';
+  const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+  if (match) {
+    return match[1];
+  }
+
+  return undefined;
+}
+
 export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
+  console.log(`[RSS] Fetching ${source.label} (${source.url})...`);
   const res = await fetchWithTimeout(source.url, 12_000)
+  console.log(`[RSS] Response ${res.status} for ${source.label}`);
+  
   if (!res.ok) {
     throw new HttpError(502, 'RSS_BAD_RESPONSE', `Flux RSS indisponible (${res.status}) pour ${source.label}`)
   }
 
   const xml = await res.text()
+  console.log(`[RSS] XML reçu pour ${source.label} (${xml.length} octets)`);
 
   let feed: Awaited<ReturnType<typeof parser.parseString>>
   try {
     feed = await parser.parseString(xml)
   } catch (err) {
+    console.error(`[RSS] Erreur de parsing pour ${source.label}:`, err);
     throw new HttpError(
       502,
       'RSS_PARSE_ERROR',
@@ -53,6 +88,7 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
   }
 
   const items = feed.items ?? []
+  console.log(`[RSS] ${items.length} articles trouvés pour ${source.label}`);
 
   return items
     .map((item) => {
@@ -65,6 +101,7 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
         `Résumé indisponible. Source: ${source.label}.`
       const datePublication = normalizeDate(item.isoDate ?? item.pubDate)
       const rawId = (item.guid ?? item.id ?? item.link ?? '') + '|' + source.id
+      const imageUrl = extractImageUrl(item)
 
       return {
         id: stableId(rawId || `${urlSource}|${datePublication}`),
@@ -72,6 +109,7 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
         resume,
         datePublication,
         urlSource,
+        imageUrl,
       } satisfies Article
     })
     .filter((x): x is Article => Boolean(x))

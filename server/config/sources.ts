@@ -21,5 +21,15 @@ export const RSS_SOURCES: RssSource[] = [
     label: 'Hacker News (frontpage)',
     url: 'https://hnrss.org/frontpage',
   },
+  {
+    id: 'le-monde-intl',
+    label: 'Le Monde (International)',
+    url: 'https://www.lemonde.fr/international/rss_full.xml',
+  },
+  {
+    id: 'frandroid',
+    label: 'Frandroid',
+    url: 'https://www.frandroid.com/feed',
+  },
 ]
 
