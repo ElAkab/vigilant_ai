@@ -44,3 +44,8 @@ const server = Bun.serve({
 });
 
 console.log(`API ready: http://localhost:${server.port}`);
+
+// Préchargement des modèles au démarrage
+globalAIService.ensureModelsLoaded().catch((err) => {
+	console.error("[Models] Échec du préchargement des modèles:", err);
+});

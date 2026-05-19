@@ -32,8 +32,8 @@ function renderMarkdown(text: string) {
       return `<h1 class="font-display text-3xl font-semibold mt-6 mb-3 text-va-ink dark:text-[#f3eee6]">${processed.slice(2)}</h1>`
     }
     
-    // Puces (- )
-    if (processed.trim().startsWith('- ')) {
+    // Puces (- ou *)
+    if (processed.trim().startsWith('- ') || processed.trim().startsWith('* ')) {
       return `<li class="ml-6 mb-2 list-disc text-va-ink-soft dark:text-[#d6cec3] leading-relaxed">${processed.trim().slice(2)}</li>`
     }
     
@@ -59,9 +59,10 @@ export function SummaryModal({
   const [showInsight, setShowInsight] = useState(false)
 
   // Split summary into main text and insight
-  const parts = summary ? summary.split("### 💡 L'avis") : [summary, ""]
+  const parts = summary ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/) : [summary, ""]
   const mainSummary = parts[0]
-  const insight = parts[1] ? `### 💡 L'avis${parts[1]}` : ""
+  // On masque le titre de l'avis mais on garde le contenu
+  const insight = parts[1] ? parts[1].replace(/^ d'InsightStream/, '').trim() : ""
 
   // Gère l'apparition différée de l'avis
   useEffect(() => {

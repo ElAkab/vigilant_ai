@@ -32,6 +32,7 @@ export function useArticleSummary() {
   }, [])
 
   const generateSummary = useCallback(async (params: GenerateSummaryParams) => {
+    console.log("DEBUG: generateSummary hook appelé pour l'article:", params.article.id);
     const requestId = ++requestSeq.current
     abortRef.current?.abort()
     const abort = new AbortController()

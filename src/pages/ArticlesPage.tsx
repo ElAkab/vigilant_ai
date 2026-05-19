@@ -10,6 +10,8 @@ export function ArticlesPage() {
   const { items, loading, error, reload } = useArticles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
     useArticleSummary()
@@ -19,6 +21,11 @@ export function ArticlesPage() {
     if (items.length === 0) return null
     return selectedId ?? items[0]!.id
   }, [items, loading, selectedId])
+
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    return items.slice(startIndex, startIndex + pageSize)
+  }, [items, currentPage])
 
   const selectedArticle: Article | null = useMemo(() => {
     if (!effectiveSelectedId) return null
@@ -34,6 +41,7 @@ export function ArticlesPage() {
   }, [])
 
   const onGenerateSummary = useCallback((article: Article) => {
+    console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id);
     setSelectedId(article.id)
     setIsModalOpen(true)
     void generateSummary({ article, maxLength: 1000 })
@@ -164,7 +172,7 @@ export function ArticlesPage() {
                   </div>
                 </div>
               ) : (
-                items.map((article, index) => (
+                paginatedItems.map((article, index) => (
                   <SelectableArticleCard
                     key={article.id}
                     article={article}
@@ -176,6 +184,52 @@ export function ArticlesPage() {
                 ))
               )}
             </div>
+
+            {/* Pagination */}
+            {items.length > pageSize && (
+              <div className="mt-8 flex items-center justify-center gap-2 font-reading text-sm">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
+                >
+                  ←
+                </button>
+                {Array.from({ length: Math.ceil(items.length / pageSize) }).map((_, i) => {
+                  const page = i + 1;
+                  const isVisible = page === 1 || page === Math.ceil(items.length / pageSize) || Math.abs(page - currentPage) <= 1;
+                  
+                  if (!isVisible) {
+                    if (page === 2 || page === Math.ceil(items.length / pageSize) - 1) {
+                      return <span key={page} className="text-va-ink-muted px-1">...</span>;
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={[
+                        'inline-flex h-10 w-10 items-center justify-center rounded-xl font-semibold transition',
+                        currentPage === page
+                          ? 'bg-va-ink text-va-paper shadow-[0_12px_30px_-18px_rgb(16_21_32/0.85)] dark:bg-[#f3eee6] dark:text-va-ink'
+                          : 'border border-va-mist bg-white/90 text-va-ink-soft hover:border-va-rust/40 hover:bg-va-paper-deep/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist'
+                      ].join(' ')}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(Math.ceil(items.length / pageSize), p + 1))}
+                  disabled={currentPage === Math.ceil(items.length / pageSize)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </section>
         </div>
       </div>
