@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { Article } from "../src/types/article";
 
 // Test simple : vérifier que les fonctions du serveur sont importables
 describe("Server modules", () => {
@@ -29,16 +30,15 @@ describe("Server modules", () => {
 });
 
 describe("Types", () => {
-	test("Article type has required fields", async () => {
-		const { Article } = await import("../src/types/article") as { Article: never };
+	test("Article type has required fields", () => {
 		// TypeScript compile-time check — si ce test compile, le type est correct
-		const article = {
+		const article: Article = {
 			id: "1",
 			titre: "Test",
 			resume: "Résumé test",
 			datePublication: "2026-01-01",
 			urlSource: "https://example.com",
-		} satisfies typeof Article;
+		};
 		expect(article.id).toBe("1");
 		expect(article.titre).toBe("Test");
 	});
