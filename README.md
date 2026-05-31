@@ -1,119 +1,119 @@
 # 🦉 Vigilant AI
 
-> *"Trop d'articles à lire chaque matin ? Résume-les en un clic."*
+> *"Too many articles to read every morning? Summarize them in one click."*
 
-Je suis développeur fullstack en apprentissage, et comme beaucoup de monde, je passe mes matinées à scroller des dizaines d'articles tech. À chaque fois, le même schéma : ouvrir 15 onglets, en lire 3, sauvegarder les 12 autres pour "plus tard" (spoiler : c'est jamais plus tard).
+I'm a fullstack developer in training, and like many people, I spend my mornings scrolling through dozens of tech articles. Every time, it's the same pattern: open 15 tabs, read 3, save the other 12 for "later" (spoiler: later never comes).
 
-**Et si je pouvais synthétiser tout ça en un clic ?**
+**What if I could synthesize all that in one click?**
 
-C'est comme ça qu'est né **Vigilant AI** : un agrégateur de veille qui va chercher des articles frais dans des flux RSS, et qui — d'un simple clic sur "✨ Synthèse IA" — te pond un résumé intelligent, critique, et même avec une touche d'humour (parce que l'info, c'est mieux quand ça fait sourire).
-
----
-
-## 🧠 Comment ça marche (version simple)
-
-1. 🕸️ Vigilant AI va lire des flux RSS (OpenAI, Le Monde, Frandroid, etc.)
-2. 📋 Il affiche les articles dans une interface propre, façon tableau de bord éditorial
-3. ✨ Tu cliques sur **"Synthèse IA"** sur l'article qui t'intéresse
-4. 🤖 Le serveur appelle un modèle d'IA gratuit (via OpenRouter) qui résume l'article en français
-5. 💡 Il ajoute même un petit avis personnel avec une pointe d'humour
-
-Tout ça sans payer un centime d'API. Le secret ? Des modèles gratuits sur [OpenRouter](https://openrouter.ai/) et un système de fallback automatique qui change de modèle si l'un d'eux plante.
-
-*(C'est un MVP — le résumé est mocké quand l'API est absente, mais 100% fonctionnel quand elle est configurée !)*
+That's how **Vigilant AI** was born: a news aggregator that fetches fresh articles from RSS feeds, and — with a single click on "✨ AI Summary" — serves up an intelligent, insightful summary, with a touch of humor (because news is better when it makes you smile).
 
 ---
 
-## 🛠️ Ma stratégie "dev freemium"
+## 🧠 How it works (simple version)
 
-Étant donné que je bosse sans gros budget, j'ai misé sur la **gratuité à tous les étages**. Voici comment :
+1. 🕸️ Vigilant AI reads RSS feeds (OpenAI, Le Monde, Frandroid, etc.)
+2. 📋 It displays the articles in a clean interface, like an editorial dashboard
+3. ✨ You click **"AI Summary"** on the article that interests you
+4. 🤖 The server calls a free AI model (via OpenRouter) that summarizes the article in English
+5. 💡 It even throws in a little personal take with a dash of humor
 
-### 👨‍💻 Des agents IA pour m'assister (gratuitement)
+All without paying a cent for API calls. The secret? Free models on [OpenRouter](https://openrouter.ai/) and an automatic fallback system that switches models if one fails.
 
-Plutôt que de choisir UN seul assistant IA, j'ai placé mes **règles agent** à plusieurs endroits du projet, pour que CHAQUE assistant puisse les lire :
-
-| Fichier | Utilisé par | Gratuit ? |
-|---------|------------|-----------|
-| `.cursor/rules` | Cursor IDE (Claude/GPT intégré) | Freemium (200 requêtes/mois) 🦀 |
-| `.github/copilot-instructions.md` | GitHub Copilot (VS Code, Antigravity) | Freemium (étudiant/starter) |
-| `AGENTS.md` | Hermes Agent, Claude Code, tout agent compatible | 100% gratuit 🎉 |
-
-Ça me permet de passer de Cursor à VS Code à Antigravity **sans perdre mes instructions** — chaque assistant sait comment coder, quelles conventions suivre, et comment me parler.
-
-> 💡 **Astuce** : les règles sont identiques dans les 3 fichiers. Si j'en modifie une, les autres se synchronisent — comme un alias DNS mais pour les assistants IA. 😄
+*(It's an MVP — the summary is mocked when no API is configured, but 100% functional when it is!)*
 
 ---
 
-## 🧱 Architecture (du simple au technique)
+## 🛠️ My "dev freemium" strategy
 
-### Version "c'est quoi ce bazar" 🐣
+Since I'm working without a big budget, I went with **free at every level**. Here's how:
+
+### 👨‍💻 AI agents to assist me (for free)
+
+Rather than choosing ONE AI assistant, I've placed my **agent rules** in several locations so that EVERY assistant can read them:
+
+| File | Used by | Free? |
+|------|---------|-------|
+| `.cursor/rules` | Cursor IDE (Claude/GPT integrated) | Freemium (200 requests/month) 🦀 |
+| `.github/copilot-instructions.md` | GitHub Copilot (VS Code, Antigravity) | Freemium (student/starter) |
+| `AGENTS.md` | Hermes Agent, Claude Code, any compatible agent | 100% free 🎉 |
+
+This lets me switch from Cursor to VS Code to Antigravity **without losing my instructions** — every assistant knows how to code, what conventions to follow, and how to talk to me.
+
+> 💡 **Tip**: the rules are identical across all 3 files. If I modify one, the others stay in sync — like a DNS alias but for AI assistants. 😄
+
+---
+
+## 🧱 Architecture (from simple to technical)
+
+### "What even is this" version 🐣
 
 ```
-Flux RSS du web ──► Serveur Bun ──► OpenRouter (IA gratuite)
-                         │
-                    Interface React
-                    (Vigilant AI)
+Web RSS Feeds ──► Bun Server ──► OpenRouter (Free AI)
+                       │
+                  React Interface
+                  (Vigilant AI)
 ```
 
-### Version "je code avec toi" 🐥
+### "Let's code together" version 🐥
 
 ```
 ┌──────────────────────────────────────────────────┐
 │  Frontend (React 19 + Vite 8 + Tailwind 4)       │
 │  → src/pages, components/, hooks/, services/      │
-│  → Appels /api/articles et /api/summarize         │
+│  → /api/articles and /api/summarize endpoints     │
 └──────────────────┬───────────────────────────────┘
                    │ HTTP
 ┌──────────────────▼───────────────────────────────┐
 │  Backend (Bun + TypeScript)                       │
-│  → server/routes/articles.ts (flux RSS)           │
-│  → server/routes/summarize.ts (résumé IA + SSE)  │
+│  → server/routes/articles.ts (RSS feed fetching)  │
+│  → server/routes/summarize.ts (AI summary + SSE) │
 │  → server/lib/aiService.ts (OpenRouter, fallback)│
-│  → server/lib/rss.ts (parseur RSS, images)       │
+│  → server/lib/rss.ts (RSS parser, images)        │
 └──────────────────┬───────────────────────────────┘
                    │
 ┌──────────────────▼───────────────────────────────┐
-│  Services externes                                │
-│  → OpenRouter (modèles IA gratuits)               │
-│  → Flux RSS (OpenAI, Le Monde, Frandroid...)     │
+│  External Services                                │
+│  → OpenRouter (free AI models)                    │
+│  → RSS Feeds (OpenAI, Le Monde, Frandroid...)    │
 └──────────────────────────────────────────────────┘
 ```
 
-### Version "pull request prête" 🦉
+### "PR-ready" version 🦉
 
-| Fichier | Rôle |
-|---------|------|
-| `server/index.ts` | Point d'entrée unique : sert le frontend **et** l'API |
-| `server/lib/aiService.ts` | 300 lignes de résilience : timeout 30s, fallback automatique sur tous les modèles, mode stream (SSE) et non-stream, mock intégré |
-| `server/lib/rss.ts` | Parseur RSS avec extraction d'images (enclosure, media:content, regex HTML) |
-| `server/routes/summarize.ts` | 240 lignes : validation des payloads, rate limiting (12 req/5min), cache LRU (100 entrées), streaming SSE avec long-polling |
-| `server/config/models.ts` | Chargement dynamique des modèles gratuits depuis l'API OpenRouter |
-| `src/pages/ArticlesPage.tsx` | 250 lignes : pagination (5/page), sélection par clic, modale de résumé, état de chargement, état vide, erreurs |
-| `src/components/SummaryModal.tsx` | 185 lignes : rendu Markdown custom, animation d'apparition de l'avis IA (1.5s), gestion Échap, overlay flouté |
-| `src/hooks/useArticleSummary.ts` | Hook de résumé avec streaming + fallback automatique non-stream |
-
----
-
-## 📦 Stack technique
-
-| Catégorie | Techno | Pourquoi |
-|-----------|--------|----------|
-| **Runtime** | Bun | Plus rapide que Node, lit les .ts natifs, install en millisecondes |
-| **Frontend** | React 19 + TypeScript 6 | Composants réactifs, typage strict |
-| **Build** | Vite 8 | Démarrage instantané, HMR natif |
-| **Style** | Tailwind CSS 4 | Utilitaire, responsive, thème sombre |
-| **Lint** | ESLint 10 | `no-explicit-any`, `no-unused-vars`, règles strictes |
-| **CI/CD** | GitHub Actions + Vercel | Lint + build auto à chaque push, déploiement continu |
-| **IA** | OpenRouter (modèles gratuits) | Zéro coût, fallback automatique |
-| **Déploiement** | VPS Hostinger (Docker) | Contrôle total, pas de limite |
+| File | Role |
+|------|------|
+| `server/index.ts` | Single entry point: serves the frontend **and** the API |
+| `server/lib/aiService.ts` | 300 lines of resilience: 30s timeout, automatic model fallback, stream (SSE) and non-stream modes, built-in mock |
+| `server/lib/rss.ts` | RSS parser with image extraction (enclosure, media:content, HTML regex) |
+| `server/routes/summarize.ts` | 240 lines: payload validation, rate limiting (12 req/5min), LRU cache (100 entries), SSE streaming with long-polling |
+| `server/config/models.ts` | Dynamic loading of free models from the OpenRouter API |
+| `src/pages/ArticlesPage.tsx` | 250 lines: pagination (5/page), click selection, summary modal, loading state, empty state, error handling |
+| `src/components/SummaryModal.tsx` | 185 lines: custom Markdown rendering, AI opinion fade-in animation (1.5s), Escape key handling, blurred overlay |
+| `src/hooks/useArticleSummary.ts` | Summary hook with streaming + automatic non-stream fallback |
 
 ---
 
-## 🚀 Déploiement & CI/CD
+## 📦 Tech Stack
 
-- **Frontend** : [vigilant-ai-ebon.vercel.app](https://vigilant-ai-ebon.vercel.app)
-- **API** : VPS Hostinger (port 8788 exposé via socat)
-- **CI** : GitHub Actions vérifie le lint + build à chaque push/PR
+| Category | Technology | Why |
+|----------|-----------|-----|
+| **Runtime** | Bun | Faster than Node, reads native .ts, installs in milliseconds |
+| **Frontend** | React 19 + TypeScript 6 | Reactive components, strict typing |
+| **Build** | Vite 8 | Instant startup, native HMR |
+| **Style** | Tailwind CSS 4 | Utility-first, responsive, dark theme |
+| **Lint** | ESLint 10 | `no-explicit-any`, `no-unused-vars`, strict rules |
+| **CI/CD** | GitHub Actions + Vercel | Lint + build on every push, continuous deployment |
+| **AI** | OpenRouter (free models) | Zero cost, automatic fallback |
+| **Deployment** | Hostinger VPS (Docker) | Full control, no limits |
+
+---
+
+## 🚀 Deployment & CI/CD
+
+- **Frontend**: [vigilant-ai-ebon.vercel.app](https://vigilant-ai-ebon.vercel.app)
+- **API**: Hostinger VPS (port 8788 exposed via socat)
+- **CI**: GitHub Actions runs lint + build on every push/PR
 
 ```yaml
 # .github/workflows/ci.yml
@@ -126,38 +126,38 @@ build → tsc + vite build
 ## 🏁 Quick Start
 
 ```bash
-# 1. Cloner
+# 1. Clone
 git clone https://github.com/ElAkab/vigilant_ai.git
 cd vigilant_ai
 
-# 2. Installer Bun (si pas déjà fait)
+# 2. Install Bun (if not already)
 curl -fsSL https://bun.sh/install | bash
 
-# 3. Installer les dépendances
+# 3. Install dependencies
 bun install
 
-# 4. Configurer l'environnement
+# 4. Configure environment
 cp .env.example .env
-# Éditer .env → ajouter OPENROUTER_API_KEY (ou laisser MOCK_AI=true)
+# Edit .env → add OPENROUTER_API_KEY (or leave MOCK_AI=true)
 
-# 5. Lancer le backend (sert frontend + API)
+# 5. Start the backend (serves frontend + API)
 cd /workspace/vigilant_ai && PORT=8787 bun run server/index.ts
 
-# 6. Ouvrir http://localhost:8787
+# 6. Open http://localhost:8787
 ```
 
 ---
 
-## 🤝 Contribuer
+## 🤝 Contributing
 
-Le projet utilise **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `ci:`, `docs:`).
+The project uses **Conventional Commits** (`feat:`, `fix:`, `refactor:`, `ci:`, `docs:`).
 
-Avant chaque PR :
-- `.env` ne contient pas de secret ✅
-- `OPENROUTER_API_KEY` utilisé côté serveur uniquement ✅
-- `bun run lint` passe ✅
-- `bun run build` passe ✅
+Before every PR:
+- `.env` contains no secrets ✅
+- `OPENROUTER_API_KEY` is server-side only ✅
+- `bun run lint` passes ✅
+- `bun run build` passes ✅
 
 ---
 
-*Fait avec ☕, des modèles IA gratuits, et beaucoup d'humilité — par un dev en apprentissage qui voulait juste lire moins d'articles.*
+*Made with ☕, free AI models, and a whole lot of humility — by a dev in training who just wanted to read fewer articles.*
