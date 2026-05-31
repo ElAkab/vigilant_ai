@@ -8,6 +8,7 @@
     "dev:api": "bun --watch server/index.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "bun test",
     "preview": "vite preview",
     "start:api": "bun server/index.ts"
   },

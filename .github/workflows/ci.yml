@@ -3,67 +3,65 @@
 # ============================================================
 #  À chaque push et chaque Pull Request sur main, ce workflow :
 #    1. Vérifie le style de code (lint)
-#    2. Vérifie le typage TypeScript + build Vite (build)
-#  Si l'un des deux échoue → l'icône passe en rouge ❌ sur GitHub.
+#    2. Lance les tests unitaires (test)
+#    3. Vérifie le typage TypeScript + build Vite (build)
+#  Si l'un échoue → l'icône passe en rouge ❌ sur GitHub.
 # ============================================================
 
-# Nom affiché dans l'onglet "Actions" de GitHub
 name: CI
 
-# DÉCLENCHEUR : quand est-ce que ce workflow se lance ?
 on:
-  push:                  # À chaque push
-    branches: [main]     # …sur la branche main
-  pull_request:          # Et pour chaque PR
-    branches: [main]     # …qui cible main
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
-# JOBS : les tâches qui tournent (peuvent tourner en parallèle)
 jobs:
 
   # ── Job 1 : Lint ─────────────────────────────────────────
   lint:
     name: Lint (ESLint)
-    # Tourne dans un conteneur Ubuntu tout neuf (jetable)
     runs-on: ubuntu-latest
-
     steps:
-      # ① Récupère ton code depuis GitHub dans le conteneur
       - name: Checkout
         uses: actions/checkout@v4
-
-      # ② Installe Bun (le runtime qui remplace Node.js)
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
-      # ③ Installe les dépendances du projet (lit bun.lock)
       - name: Install dependencies
         run: bun install
-
-      # ④ Lance ESLint : vérifie le style et les erreurs
       - name: Run lint
         run: bun run lint
 
-  # ── Job 2 : Build (TypeScript + Vite) ────────────────────
-  build:
-    name: Build (tsc + Vite)
+  # ── Job 2 : Tests ────────────────────────────────────────
+  test:
+    name: Tests (bun test)
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-
       - name: Install dependencies
         run: bun install
+      - name: Run tests
+        run: bun run test
 
-      # ⑤ tsc -b : vérifie que le TypeScript est correct
-      #    (pas de `any` non voulu, pas d'import cassé, etc.)
-      #    vite build : produit le dossier dist/ pour la prod
+  # ── Job 3 : Build (TypeScript + Vite) ────────────────────
+  build:
+    name: Build (tsc + Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
       - name: Run build
         run: bun run build
