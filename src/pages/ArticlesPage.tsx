@@ -36,10 +36,6 @@ export function ArticlesPage() {
     reset()
   }, [effectiveSelectedId, reset])
 
-  const onSelectArticle = useCallback((id: Article['id']) => {
-    setSelectedId(id)
-  }, [])
-
   const onGenerateSummary = useCallback((article: Article) => {
     console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id);
     setSelectedId(article.id)
@@ -177,7 +173,6 @@ export function ArticlesPage() {
                     key={article.id}
                     article={article}
                     isSelected={article.id === effectiveSelectedId}
-                    onSelect={onSelectArticle}
                     onGenerateSummary={onGenerateSummary}
                     styleIndex={index}
                   />

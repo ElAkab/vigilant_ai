@@ -6,7 +6,6 @@ import { ArticleCard } from './ArticleCard'
 type SelectableArticleCardProps = {
   article: Article
   isSelected: boolean
-  onSelect: (id: Article['id']) => void
   onGenerateSummary: (article: Article) => void
   styleIndex: number
 }
@@ -14,7 +13,6 @@ type SelectableArticleCardProps = {
 export const SelectableArticleCard = memo(function SelectableArticleCard({
   article,
   isSelected,
-  onSelect,
   onGenerateSummary,
   styleIndex,
 }: SelectableArticleCardProps) {

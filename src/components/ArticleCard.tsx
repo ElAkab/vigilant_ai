@@ -5,7 +5,7 @@ import type { Article } from "../types/article";
 
 type ArticleCardProps = {
 	article: Article;
-	onGenerateSummary: (article: Article) => void;
+	onGenerateSummary?: (article: Article) => void;
 };
 
 function ArticleCardComponent({
@@ -72,6 +72,7 @@ function ArticleCardComponent({
 							</p>
 						</div>
 						<div className="flex gap-2">
+							{onGenerateSummary && (
 							<button
 								onClick={(e) => {
 									e.stopPropagation();
@@ -81,6 +82,7 @@ function ArticleCardComponent({
 							>
 								✨ Synthèse IA
 							</button>
+							)}
 						</div>
 					</div>
 				</div>
