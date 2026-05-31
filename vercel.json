@@ -4,7 +4,7 @@
   "installCommand": "bun install",
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "http://187.77.160.208/api/$1" },
+    { "source": "/api/(.*)", "destination": "http://187.77.160.208:8788/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
