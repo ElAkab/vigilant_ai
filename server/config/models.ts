@@ -11,7 +11,7 @@ export async function loadModelConfig(): Promise<AIModel[]> {
 		const res = await fetch("https://openrouter.ai/api/v1/models");
 		if (!res.ok) throw new Error(`Erreur HTTP ${res.status}`);
 		
-		const data = (await res.json()) as { data: any[] };
+		const data = (await res.json()) as { data: Array<{ id: string; name: string; pricing?: { prompt?: string; completion?: string }; context_length?: number }> };
 		
 		// Filtre les modèles gratuits
 		const freeModels = data.data.filter((m) => {

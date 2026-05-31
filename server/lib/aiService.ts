@@ -1,6 +1,5 @@
 import { HttpError } from "./http";
 import type { AIModel } from "./models";
-import { DEFAULT_MODELS } from "./models";
 import { loadModelConfig } from "../config/models";
 
 function getEnv(key: string): string | undefined {
@@ -177,7 +176,7 @@ export class AIService {
 							const data = JSON.parse(jsonStr);
 							const text = data.choices?.[0]?.delta?.content;
 							if (text) yield text;
-						} catch (e) {
+						} catch {
 							// Ignore parse errors for incomplete lines
 						}
 					}

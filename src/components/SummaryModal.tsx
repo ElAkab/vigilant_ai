@@ -70,9 +70,6 @@ export function SummaryModal({
       const timer = setTimeout(() => setShowInsight(true), 1500) // 1.5 seconde de délai
       return () => clearTimeout(timer)
     }
-    if (isLoading) {
-      setShowInsight(false)
-    }
   }, [isLoading, summary, insight])
 
   // Fermer la modale avec Échap

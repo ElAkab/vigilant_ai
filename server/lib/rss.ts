@@ -33,7 +33,7 @@ function normalizeDate(isoLike: string | undefined): string {
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString()
 }
 
-function extractImageUrl(item: any): string | undefined {
+function extractImageUrl(item: Record<string, unknown>): string | undefined {
   if (item.enclosure) {
     console.log(`[RSS] Enclosure trouvé pour "${item.title}":`, item.enclosure);
     if (item.enclosure.url && item.enclosure.type && item.enclosure.type.startsWith('image/')) {

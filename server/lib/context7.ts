@@ -36,7 +36,7 @@ export async function fetchOpenRouterConfig(): Promise<OpenRouterConfig | null> 
 		if (typeof data.baseUrl === "string") cfg.baseUrl = data.baseUrl;
 		if (typeof data.model === "string") cfg.model = data.model;
 		return cfg;
-	} catch (err) {
+	} catch {
 		return null;
 	}
 }

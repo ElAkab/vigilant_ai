@@ -11,6 +11,7 @@ export function ArticlesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const [summaryGen, setSummaryGen] = useState(0)
   const pageSize = 5
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
@@ -40,6 +41,7 @@ export function ArticlesPage() {
     console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id);
     setSelectedId(article.id)
     setIsModalOpen(true)
+    setSummaryGen((prev) => prev + 1)
     void generateSummary({ article, maxLength: 1000 })
   }, [generateSummary])
 
@@ -230,6 +232,7 @@ export function ArticlesPage() {
       </div>
 
       <SummaryModal
+        key={summaryGen}
         isOpen={isModalOpen}
         onClose={onCloseModal}
         article={selectedArticle}
