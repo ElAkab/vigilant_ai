@@ -49,6 +49,8 @@ jobs:
         run: bun install
       - name: Run tests
         run: bun run test
+        env:
+          MOCK_AI: "true"
 
   # ── Job 3 : Build (TypeScript + Vite) ────────────────────
   build:
