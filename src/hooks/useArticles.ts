@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { listArticles } from '../services/articlesService'
 import type { Article } from '../types/article'
@@ -16,29 +16,39 @@ export function useArticles() {
     error: null,
   })
 
-  useEffect(() => {
-    let cancelled = false
+  const seqRef = useRef(0)
+  const cancelledRef = useRef(false)
+
+  const reload = useCallback(() => {
+    const runId = ++seqRef.current
 
     async function run() {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }))
         const result = await listArticles()
-        if (cancelled) return
-        setState({ items: result.items, loading: false, error: null })
+        if (cancelledRef.current) return
+        if (runId !== seqRef.current) return
+        setState((prev) => ({ ...prev, items: result.items, loading: false, error: null }))
       } catch (err) {
-        if (cancelled) return
+        if (cancelledRef.current) return
+        if (runId !== seqRef.current) return
         const message = err instanceof Error ? err.message : 'Erreur inconnue'
-        setState({ items: [], loading: false, error: message })
+        setState((prev) => ({ ...prev, items: [], loading: false, error: message }))
       }
     }
 
     void run()
-
-    return () => {
-      cancelled = true
-    }
   }, [])
 
-  return state
+  useEffect(() => {
+    cancelledRef.current = false
+    reload()
+
+    return () => {
+      cancelledRef.current = true
+    }
+  }, [reload])
+
+  return { ...state, reload }
 }
 

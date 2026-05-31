@@ -1,49 +1,55 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { SelectableArticleCard } from '../components/SelectableArticleCard'
-import { SummaryPanel } from '../components/SummaryPanel'
+import { SummaryModal } from '../components/SummaryModal'
 import { useArticles } from '../hooks/useArticles'
 import { useArticleSummary } from '../hooks/useArticleSummary'
 import type { Article } from '../types/article'
 
 export function ArticlesPage() {
-  const { items, loading, error } = useArticles()
+  const { items, loading, error, reload } = useArticles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = 5
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
     useArticleSummary()
 
-  useEffect(() => {
-    if (loading) return
-    if (items.length === 0) {
-      setSelectedId(null)
-      return
-    }
+  const effectiveSelectedId = useMemo(() => {
+    if (loading) return selectedId
+    if (items.length === 0) return null
+    return selectedId ?? items[0]!.id
+  }, [items, loading, selectedId])
 
-    setSelectedId((prev) => prev ?? items[0]!.id)
-  }, [items, loading])
+  const paginatedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    return items.slice(startIndex, startIndex + pageSize)
+  }, [items, currentPage])
 
   const selectedArticle: Article | null = useMemo(() => {
-    if (!selectedId) return null
-    return items.find((a) => a.id === selectedId) ?? null
-  }, [items, selectedId])
+    if (!effectiveSelectedId) return null
+    return items.find((a) => a.id === effectiveSelectedId) ?? null
+  }, [items, effectiveSelectedId])
 
   useEffect(() => {
     reset()
-  }, [selectedId, reset])
+  }, [effectiveSelectedId, reset])
 
   const onSelectArticle = useCallback((id: Article['id']) => {
     setSelectedId(id)
   }, [])
 
-  const onGenerateSummary = useCallback(() => {
-    if (!selectedArticle) return
-    void generateSummary({ article: selectedArticle, maxLength: 280 })
-  }, [generateSummary, selectedArticle])
+  const onGenerateSummary = useCallback((article: Article) => {
+    console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id);
+    setSelectedId(article.id)
+    setIsModalOpen(true)
+    void generateSummary({ article, maxLength: 1000 })
+  }, [generateSummary])
 
-  const onResetSummary = useCallback(() => {
-    reset()
-  }, [reset])
+  const onCloseModal = useCallback(() => {
+    setIsModalOpen(false)
+  }, [])
 
   return (
     <main className="min-h-dvh">
@@ -63,7 +69,7 @@ export function ArticlesPage() {
               Vigilant&nbsp;AI
             </h1>
             <p className="font-reading text-base leading-relaxed text-va-ink-soft dark:text-[#cbc3b7]">
-              Tableau de bord éditorial pour suivre une veille curatoriale : lis, sélectionne, puis{' '}
+              Tableau de bord éditorial pour suivre une veille curatoriale: lis, sélectionne, puis{' '}
               <span className="font-semibold text-va-ink dark:text-[#f3eee6]">
                 extrais une synthèse
               </span>{' '}
@@ -81,7 +87,7 @@ export function ArticlesPage() {
               </span>
             </div>
             <p className="text-xs leading-relaxed text-va-ink-muted dark:text-[#8f877c]">
-              Disposition en deux bandes : liste principale à gauche, panneau de synthèse ancré à
+              Disposition en deux bandes: liste principale à gauche, panneau de synthèse ancré à
               droite (sticky sur grand écran).
             </p>
           </div>
@@ -92,13 +98,34 @@ export function ArticlesPage() {
         {error ? (
           <div
             role="alert"
-            className="mb-8 rounded-2xl border border-red-200/90 bg-red-50 p-5 font-reading text-sm text-red-900 dark:border-red-900/55 dark:bg-red-950/40 dark:text-red-100"
+            className="mb-8 flex flex-col gap-4 rounded-2xl border border-red-200/90 bg-red-50 p-5 font-reading text-sm text-red-900 dark:border-red-900/55 dark:bg-red-950/40 dark:text-red-100"
           >
-            {error}
+            <div className="space-y-1">
+              <p className="font-semibold">Impossible de charger les sources.</p>
+              <p className="text-red-900/80 dark:text-red-100/85">{error}</p>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={reload}
+                className="inline-flex items-center justify-center rounded-xl bg-red-900 px-4 py-2.5 font-reading text-sm font-semibold text-red-50 shadow-[0_14px_34px_-20px_rgb(120_11_11/0.55)] transition hover:-translate-y-0.5 hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
+              >
+                Réessayer
+              </button>
+              <a
+                href="https://github.com/"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center justify-center rounded-xl border border-red-200/80 bg-white/70 px-4 py-2.5 font-reading text-sm font-semibold text-red-900/90 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:border-white/10 dark:bg-zinc-950/40 dark:text-red-100/90 dark:hover:bg-zinc-950/60"
+              >
+                Vérifier la connexion
+              </a>
+            </div>
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
+        <div className="mx-auto max-w-3xl">
           <section className="space-y-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -119,35 +146,102 @@ export function ArticlesPage() {
                 </div>
               ) : items.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-va-mist/90 bg-white/55 p-10 text-center font-reading text-sm text-va-ink-muted dark:border-white/10 dark:bg-zinc-950/30 dark:text-[#a39a91]">
-                  Aucun article mock pour le moment. Ajoute-en dans les données fictives ou branche un
-                  connecteur RSS.
+                  <p className="text-base font-semibold text-va-ink dark:text-[#f3eee6]">
+                    Aucun article à afficher pour le moment.
+                  </p>
+                  <p className="mt-2 leading-relaxed">
+                    Si tu viens de brancher un flux RSS, il peut être temporairement vide ou bloqué.
+                    Tu peux aussi ajouter/retirer des sources dans <code className="font-mono">server/config/sources.ts</code>.
+                  </p>
+                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={reload}
+                      className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
+                    >
+                      Recharger
+                    </button>
+                    <a
+                      href="https://hnrss.org/"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:hover:bg-zinc-900/60"
+                    >
+                      Exemple de flux RSS
+                    </a>
+                  </div>
                 </div>
               ) : (
-                items.map((article, index) => (
+                paginatedItems.map((article, index) => (
                   <SelectableArticleCard
                     key={article.id}
                     article={article}
-                    isSelected={article.id === selectedId}
+                    isSelected={article.id === effectiveSelectedId}
                     onSelect={onSelectArticle}
+                    onGenerateSummary={onGenerateSummary}
                     styleIndex={index}
                   />
                 ))
               )}
             </div>
-          </section>
 
-          <aside className="lg:sticky lg:top-8 lg:-translate-y-2 lg:self-start">
-            <SummaryPanel
-              article={selectedArticle}
-              summary={summary}
-              isLoading={summaryLoading}
-              error={summaryError}
-              onGenerate={onGenerateSummary}
-              onClear={onResetSummary}
-            />
-          </aside>
+            {/* Pagination */}
+            {items.length > pageSize && (
+              <div className="mt-8 flex items-center justify-center gap-2 font-reading text-sm">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
+                >
+                  ←
+                </button>
+                {Array.from({ length: Math.ceil(items.length / pageSize) }).map((_, i) => {
+                  const page = i + 1;
+                  const isVisible = page === 1 || page === Math.ceil(items.length / pageSize) || Math.abs(page - currentPage) <= 1;
+                  
+                  if (!isVisible) {
+                    if (page === 2 || page === Math.ceil(items.length / pageSize) - 1) {
+                      return <span key={page} className="text-va-ink-muted px-1">...</span>;
+                    }
+                    return null;
+                  }
+                  
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={[
+                        'inline-flex h-10 w-10 items-center justify-center rounded-xl font-semibold transition',
+                        currentPage === page
+                          ? 'bg-va-ink text-va-paper shadow-[0_12px_30px_-18px_rgb(16_21_32/0.85)] dark:bg-[#f3eee6] dark:text-va-ink'
+                          : 'border border-va-mist bg-white/90 text-va-ink-soft hover:border-va-rust/40 hover:bg-va-paper-deep/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist'
+                      ].join(' ')}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(Math.ceil(items.length / pageSize), p + 1))}
+                  disabled={currentPage === Math.ceil(items.length / pageSize)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
+                >
+                  →
+                </button>
+              </div>
+            )}
+          </section>
         </div>
       </div>
+
+      <SummaryModal
+        isOpen={isModalOpen}
+        onClose={onCloseModal}
+        article={selectedArticle}
+        summary={summary}
+        isLoading={summaryLoading}
+        error={summaryError}
+      />
     </main>
   )
 }
