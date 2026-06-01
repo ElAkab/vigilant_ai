@@ -3,8 +3,12 @@
   "outputDirectory": "dist",
   "installCommand": "bun install",
   "framework": "vite",
+  "functions": {
+    "api/*.ts": {
+      "runtime": "nodejs22.x"
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "http://187.77.160.208:8788/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
