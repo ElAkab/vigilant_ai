@@ -1,5 +1,14 @@
 {
   "buildCommand": "bun run build",
-  "outputDirectory": ".vercel/output/static",
-  "installCommand": "bun install"
+  "outputDirectory": "dist",
+  "installCommand": "bun install",
+  "framework": "vite",
+  "functions": {
+    "api/*.ts": {
+      "runtime": "@vercel/node@3.0.0"
+    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
