@@ -54,7 +54,10 @@ export function useArticles() {
 
   useEffect(() => {
     cancelledRef.current = false
-    reload({ limit: 10, offset: 0 })
+
+    void (async () => {
+      await reload({ limit: 10, offset: 0 })
+    })()
 
     return () => {
       cancelledRef.current = true
