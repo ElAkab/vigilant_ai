@@ -1,5 +1,5 @@
-import { handleSummarize } from '../server/routes/summarize'
-import { errorResponse } from '../server/lib/http'
+import { handleSummarize } from '../../server/routes/summarize'
+import { errorResponse } from '../../server/lib/http'
 
 export default async function handler(req: Request): Promise<Response> {
   try {
