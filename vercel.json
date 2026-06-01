@@ -2,7 +2,9 @@
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "installCommand": "bun install",
-  "framework": "vite",
+  "functions": {
+    "api/*.ts": {}
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
