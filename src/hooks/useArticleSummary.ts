@@ -14,6 +14,30 @@ type GenerateSummaryParams = {
   maxLength?: number
 }
 
+const MAX_RETRIES = 2
+const RETRY_DELAY_MS = 1500
+const CACHE_PREFIX = 'vigilant-summary:'
+
+function getCached(articleId: string): string | null {
+  try {
+    return sessionStorage.getItem(CACHE_PREFIX + articleId)
+  } catch {
+    return null
+  }
+}
+
+function setCache(articleId: string, summary: string): void {
+  try {
+    sessionStorage.setItem(CACHE_PREFIX + articleId, summary)
+  } catch {
+    // sessionStorage plein ou indisponible — on ignore
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export function useArticleSummary() {
   const [state, setState] = useState<UseArticleSummaryState>({
     summary: null,
@@ -31,42 +55,75 @@ export function useArticleSummary() {
     setState({ summary: null, loading: false, error: null })
   }, [])
 
-  const generateSummary = useCallback(async (params: GenerateSummaryParams) => {
-    console.log("DEBUG: generateSummary hook appelé pour l'article:", params.article.id);
-    const requestId = ++requestSeq.current
-    abortRef.current?.abort()
-    const abort = new AbortController()
-    abortRef.current = abort
-
-    try {
-      setState((prev) => ({ ...prev, loading: true, error: null }))
-      setState((prev) => ({ ...prev, summary: '' }))
-
-      const chunks: string[] = []
-      const result = await summarizeArticleStream({
+  const attemptSummarize = useCallback(
+    async (params: GenerateSummaryParams, requestId: number, abort: AbortController) => {
+      return summarizeArticleStream({
         ...params,
         signal: abort.signal,
         onDelta(delta) {
           if (requestId !== requestSeq.current) return
-          chunks.push(delta)
           setState((prev) => ({ ...prev, summary: (prev.summary ?? '') + delta }))
         },
       }).catch(async (err) => {
-        // Fallback non-stream si le endpoint/streaming n’est pas dispo.
         if (abort.signal.aborted) throw err
-        const nonStream = await summarizeArticle(params)
-        return nonStream
+        // Fallback non-stream
+        return summarizeArticle(params)
       })
+    },
+    [],
+  )
 
-      if (requestId !== requestSeq.current) return
-      setState({ summary: result.summary, loading: false, error: null })
-    } catch (err) {
-      if (requestId !== requestSeq.current) return
-      if (err instanceof Error && err.name === 'AbortError') return
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
-      setState((prev) => ({ ...prev, loading: false, error: message }))
-    }
-  }, [])
+  const generateSummary = useCallback(
+    async (params: GenerateSummaryParams) => {
+      const requestId = ++requestSeq.current
+      abortRef.current?.abort()
+      const abort = new AbortController()
+      abortRef.current = abort
+
+      // Vérifier le cache sessionStorage d'abord
+      const cached = getCached(params.article.id)
+      if (cached) {
+        setState({ summary: cached, loading: false, error: null })
+        return
+      }
+
+      setState({ summary: '', loading: true, error: null })
+
+      let lastError: Error | null = null
+
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          if (attempt > 0) {
+            await delay(RETRY_DELAY_MS)
+            if (requestId !== requestSeq.current) return
+            setState((prev) => ({ ...prev, summary: '' }))
+          }
+
+          const result = await attemptSummarize(params, requestId, abort)
+
+          if (requestId !== requestSeq.current) return
+          // Sauvegarder dans le cache
+          if (result.summary) setCache(params.article.id, result.summary)
+          setState({ summary: result.summary, loading: false, error: null })
+          return
+        } catch (err) {
+          if (requestId !== requestSeq.current) return
+          if (err instanceof Error && err.name === 'AbortError') return
+          lastError = err instanceof Error ? err : new Error('Erreur inconnue')
+
+          if (attempt === MAX_RETRIES) {
+            setState((prev) => ({
+              ...prev,
+              loading: false,
+              error: lastError?.message || 'Échec du résumé après plusieurs tentatives',
+            }))
+            return
+          }
+        }
+      }
+    },
+    [attemptSummarize],
+  )
 
   return {
     ...state,
@@ -74,4 +131,3 @@ export function useArticleSummary() {
     reset,
   }
 }
-

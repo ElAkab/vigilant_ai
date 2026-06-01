@@ -9,7 +9,7 @@ export type ListArticlesResult = {
 }
 
 export async function listArticles(): Promise<ListArticlesResult> {
-  const res = await fetch('/api/articles?limit=80', {
+  const res = await fetch('/api/articles?limit=60', {
     headers: { accept: 'application/json' },
   })
 

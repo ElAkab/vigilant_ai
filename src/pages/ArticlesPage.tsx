@@ -78,16 +78,12 @@ export function ArticlesPage() {
           <div className="grid w-full gap-3 font-reading text-sm md:max-w-xs md:text-right">
             <div className="rounded-2xl border border-black/10 bg-white/70 p-4 text-va-ink-soft shadow-[0_16px_40px_-32px_rgb(16_21_32/0.65)] backdrop-blur-sm dark:border-white/10 dark:bg-zinc-950/45 dark:text-[#bfb6ab] dark:shadow-[0_20px_50px_-38px_rgb(0_0_0/0.75)]">
               <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-va-rust dark:text-va-rust-bright">
-                État flux
+                Articles
               </span>
               <span className="mt-2 block text-base font-semibold text-va-ink dark:text-[#f3eee6]">
-                {loading ? 'Chargement des sources…' : `${items.length} article${items.length > 1 ? 's' : ''} disponible${items.length > 1 ? 's' : ''}`}
+                {loading ? '…' : items.length}
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-va-ink-muted dark:text-[#8f877c]">
-              Disposition en deux bandes: liste principale à gauche, panneau de synthèse ancré à
-              droite (sticky sur grand écran).
-            </p>
           </div>
         </div>
       </header>
@@ -192,6 +188,9 @@ export function ArticlesPage() {
                 >
                   ←
                 </button>
+                <span className="text-xs text-va-ink-muted dark:text-[#8f877c] px-2 min-w-[4rem] text-center">
+                  {currentPage}/{Math.ceil(items.length / pageSize)}
+                </span>
                 {Array.from({ length: Math.ceil(items.length / pageSize) }).map((_, i) => {
                   const page = i + 1;
                   const isVisible = page === 1 || page === Math.ceil(items.length / pageSize) || Math.abs(page - currentPage) <= 1;
