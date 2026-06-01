@@ -6,27 +6,37 @@ import { useArticles } from '../hooks/useArticles'
 import { useArticleSummary } from '../hooks/useArticleSummary'
 import type { Article } from '../types/article'
 
+const DEFAULT_PAGE_SIZE = 10
+
 export function ArticlesPage() {
-  const { items, loading, error, reload } = useArticles()
+  const { items, total, loading, error, reload } = useArticles()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [summaryGen, setSummaryGen] = useState(0)
-  const pageSize = 5
 
   const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
     useArticleSummary()
+
+  const pageSize = DEFAULT_PAGE_SIZE
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+
+  // Navigation paginée côté serveur
+  const goToPage = useCallback(
+    (page: number) => {
+      const clamped = Math.max(1, Math.min(page, totalPages))
+      setCurrentPage(clamped)
+      const offset = (clamped - 1) * pageSize
+      reload({ limit: pageSize, offset })
+    },
+    [pageSize, totalPages, reload],
+  )
 
   const effectiveSelectedId = useMemo(() => {
     if (loading) return selectedId
     if (items.length === 0) return null
     return selectedId ?? items[0]!.id
   }, [items, loading, selectedId])
-
-  const paginatedItems = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    return items.slice(startIndex, startIndex + pageSize)
-  }, [items, currentPage])
 
   const selectedArticle: Article | null = useMemo(() => {
     if (!effectiveSelectedId) return null
@@ -37,13 +47,16 @@ export function ArticlesPage() {
     reset()
   }, [effectiveSelectedId, reset])
 
-  const onGenerateSummary = useCallback((article: Article) => {
-    console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id);
-    setSelectedId(article.id)
-    setIsModalOpen(true)
-    setSummaryGen((prev) => prev + 1)
-    void generateSummary({ article, maxLength: 1000 })
-  }, [generateSummary])
+  const onGenerateSummary = useCallback(
+    (article: Article) => {
+      console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id)
+      setSelectedId(article.id)
+      setIsModalOpen(true)
+      setSummaryGen((prev) => prev + 1)
+      void generateSummary({ article, maxLength: 1000 })
+    },
+    [generateSummary],
+  )
 
   const onCloseModal = useCallback(() => {
     setIsModalOpen(false)
@@ -81,7 +94,7 @@ export function ArticlesPage() {
                 Articles
               </span>
               <span className="mt-2 block text-base font-semibold text-va-ink dark:text-[#f3eee6]">
-                {loading ? '…' : items.length}
+                {loading ? '…' : total}
               </span>
             </div>
           </div>
@@ -102,7 +115,7 @@ export function ArticlesPage() {
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={reload}
+                onClick={() => reload({ limit: pageSize, offset: 0 })}
                 className="inline-flex items-center justify-center rounded-xl bg-red-900 px-4 py-2.5 font-reading text-sm font-semibold text-red-50 shadow-[0_14px_34px_-20px_rgb(120_11_11/0.55)] transition hover:-translate-y-0.5 hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
               >
                 Réessayer
@@ -145,12 +158,13 @@ export function ArticlesPage() {
                   </p>
                   <p className="mt-2 leading-relaxed">
                     Si tu viens de brancher un flux RSS, il peut être temporairement vide ou bloqué.
-                    Tu peux aussi ajouter/retirer des sources dans <code className="font-mono">server/config/sources.ts</code>.
+                    Tu peux aussi ajouter/retirer des sources dans{' '}
+                    <code className="font-mono">server/config/sources.ts</code>.
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-3">
                     <button
                       type="button"
-                      onClick={reload}
+                      onClick={() => reload({ limit: pageSize, offset: 0 })}
                       className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
                     >
                       Recharger
@@ -166,7 +180,7 @@ export function ArticlesPage() {
                   </div>
                 </div>
               ) : (
-                paginatedItems.map((article, index) => (
+                items.map((article, index) => (
                   <SelectableArticleCard
                     key={article.id}
                     article={article}
@@ -178,48 +192,55 @@ export function ArticlesPage() {
               )}
             </div>
 
-            {/* Pagination */}
-            {items.length > pageSize && (
+            {/* Pagination serveur */}
+            {total > pageSize && (
               <div className="mt-8 flex items-center justify-center gap-2 font-reading text-sm">
                 <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  onClick={() => goToPage(currentPage - 1)}
                   disabled={currentPage === 1}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
                 >
                   ←
                 </button>
                 <span className="text-xs text-va-ink-muted dark:text-[#8f877c] px-2 min-w-[4rem] text-center">
-                  {currentPage}/{Math.ceil(items.length / pageSize)}
+                  {currentPage}/{totalPages}
                 </span>
-                {Array.from({ length: Math.ceil(items.length / pageSize) }).map((_, i) => {
-                  const page = i + 1;
-                  const isVisible = page === 1 || page === Math.ceil(items.length / pageSize) || Math.abs(page - currentPage) <= 1;
-                  
+                {Array.from({ length: totalPages }).map((_, i) => {
+                  const page = i + 1
+                  const isVisible =
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - currentPage) <= 1
+
                   if (!isVisible) {
-                    if (page === 2 || page === Math.ceil(items.length / pageSize) - 1) {
-                      return <span key={page} className="text-va-ink-muted px-1">...</span>;
+                    if (page === 2 || page === totalPages - 1) {
+                      return (
+                        <span key={page} className="text-va-ink-muted px-1">
+                          ...
+                        </span>
+                      )
                     }
-                    return null;
+                    return null
                   }
-                  
+
                   return (
                     <button
                       key={page}
-                      onClick={() => setCurrentPage(page)}
+                      onClick={() => goToPage(page)}
                       className={[
                         'inline-flex h-10 w-10 items-center justify-center rounded-xl font-semibold transition',
                         currentPage === page
                           ? 'bg-va-ink text-va-paper shadow-[0_12px_30px_-18px_rgb(16_21_32/0.85)] dark:bg-[#f3eee6] dark:text-va-ink'
-                          : 'border border-va-mist bg-white/90 text-va-ink-soft hover:border-va-rust/40 hover:bg-va-paper-deep/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist'
+                          : 'border border-va-mist bg-white/90 text-va-ink-soft hover:border-va-rust/40 hover:bg-va-paper-deep/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist',
                       ].join(' ')}
                     >
                       {page}
                     </button>
-                  );
+                  )
                 })}
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(Math.ceil(items.length / pageSize), p + 1))}
-                  disabled={currentPage === Math.ceil(items.length / pageSize)}
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-va-mist bg-white/90 font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 disabled:opacity-50 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist"
                 >
                   →

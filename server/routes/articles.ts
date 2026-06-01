@@ -10,7 +10,10 @@ const perSourceCache = new TTLCache<string, Article[]>(10 * 60_000)
 function dedupeAndSort(items: Article[]): Article[] {
   const map = new Map<string, Article>()
   for (const item of items) {
-    map.set(item.urlSource, item)
+    // Clé = id (hash SHA1 unique) — urlSource peut écraser des articles légitimes
+    if (!map.has(item.id)) {
+      map.set(item.id, item)
+    }
   }
 
   const deduped = [...map.values()]
@@ -27,8 +30,8 @@ export async function handleListArticles(req: Request): Promise<Response> {
   }
 
   const url = new URL(req.url)
-  const limitParam = url.searchParams.get('limit')
-  const limit = limitParam ? Math.max(1, Math.min(200, Number(limitParam))) : 60
+  const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') || 10)))
+  const offset = Math.max(0, Number(url.searchParams.get('offset') || 0))
 
   const settled = await Promise.allSettled(
     RSS_SOURCES.map(async (source) => {
@@ -51,12 +54,23 @@ export async function handleListArticles(req: Request): Promise<Response> {
   }
 
   const merged = dedupeAndSort(results.flat())
-  console.log(`[Articles API] Fusionné ${merged.length} articles. Erreurs de sources:`, errors);
-  
-  if (merged.length === 0) {
+  const total = merged.length
+  console.log(`[Articles API] Fusionné ${total} articles. Erreurs de sources:`, errors);
+
+  if (total === 0) {
     throw new HttpError(502, 'RSS_UNAVAILABLE', errors[0]?.message ?? 'Aucune source RSS disponible')
   }
 
-  return json({ items: merged.slice(0, limit), meta: { sourceCount: RSS_SOURCES.length, errors } })
+  const page = Math.floor(offset / limit) + 1
+  const totalPages = Math.ceil(total / limit)
+
+  return json({
+    items: merged.slice(offset, offset + limit),
+    total,
+    page,
+    pageSize: limit,
+    totalPages,
+    meta: { sourceCount: RSS_SOURCES.length, errors },
+  })
 }
 

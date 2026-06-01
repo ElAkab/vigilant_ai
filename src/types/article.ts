@@ -8,3 +8,15 @@ export type Article = {
   sourceLabel?: string
 }
 
+export interface PaginatedArticles {
+  items: Article[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+  meta?: {
+    sourceCount?: number
+    errors?: Array<{ sourceId: string; message: string }>
+  }
+}
+

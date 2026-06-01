@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { listArticles } from '../services/articlesService'
-import type { Article } from '../types/article'
+import type { Article, PaginatedArticles } from '../types/article'
 
-type UseArticlesState = {
+interface UseArticlesState {
   items: Article[]
+  total: number
   loading: boolean
   error: string | null
 }
@@ -12,6 +13,7 @@ type UseArticlesState = {
 export function useArticles() {
   const [state, setState] = useState<UseArticlesState>({
     items: [],
+    total: 0,
     loading: true,
     error: null,
   })
@@ -19,30 +21,40 @@ export function useArticles() {
   const seqRef = useRef(0)
   const cancelledRef = useRef(false)
 
-  const reload = useCallback(() => {
-    const runId = ++seqRef.current
+  const reload = useCallback(
+    async (params?: { limit?: number; offset?: number }) => {
+      const runId = ++seqRef.current
 
-    async function run() {
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }))
-        const result = await listArticles()
+        const result: PaginatedArticles = await listArticles(params)
         if (cancelledRef.current) return
         if (runId !== seqRef.current) return
-        setState((prev) => ({ ...prev, items: result.items, loading: false, error: null }))
+        setState({
+          items: result.items,
+          total: result.total,
+          loading: false,
+          error: null,
+        })
       } catch (err) {
         if (cancelledRef.current) return
         if (runId !== seqRef.current) return
-        const message = err instanceof Error ? err.message : 'Erreur inconnue'
-        setState((prev) => ({ ...prev, items: [], loading: false, error: message }))
+        const message =
+          err instanceof Error ? err.message : 'Erreur inconnue'
+        setState((prev) => ({
+          ...prev,
+          items: [],
+          loading: false,
+          error: message,
+        }))
       }
-    }
-
-    void run()
-  }, [])
+    },
+    [],
+  )
 
   useEffect(() => {
     cancelledRef.current = false
-    reload()
+    reload({ limit: 10, offset: 0 })
 
     return () => {
       cancelledRef.current = true
@@ -51,4 +63,3 @@ export function useArticles() {
 
   return { ...state, reload }
 }
-

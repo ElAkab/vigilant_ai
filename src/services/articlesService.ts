@@ -1,15 +1,17 @@
-import type { Article } from '../types/article'
+import type { PaginatedArticles } from '../types/article'
 
-export type ListArticlesResult = {
-  items: Article[]
-  meta?: {
-    sourceCount?: number
-    errors?: Array<{ sourceId: string; message: string }>
-  }
+export interface ListArticlesParams {
+  limit?: number   // défaut 10
+  offset?: number  // défaut 0
 }
 
-export async function listArticles(): Promise<ListArticlesResult> {
-  const res = await fetch('/api/articles?limit=60', {
+export async function listArticles(
+  params: ListArticlesParams = {},
+): Promise<PaginatedArticles> {
+  const { limit = 10, offset = 0 } = params
+  const url = `/api/articles?limit=${limit}&offset=${offset}`
+
+  const res = await fetch(url, {
     headers: { accept: 'application/json' },
   })
 
@@ -24,6 +26,5 @@ export async function listArticles(): Promise<ListArticlesResult> {
     throw new Error(message)
   }
 
-  return (await res.json()) as ListArticlesResult
+  return (await res.json()) as PaginatedArticles
 }
-
