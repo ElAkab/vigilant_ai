@@ -100,7 +100,8 @@ export function SummaryModal({
         trigger="manual"
         active={isLoading}
         showWhenInactive={false}
-        borderPosition="inner"
+        borderPosition="outer"
+        borderOffset={2}
       >
         <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
           {/* En-tête */}
