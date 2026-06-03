@@ -226,7 +226,7 @@ export class AIService {
 				Authorization: `Bearer ${apiKey}`,
 			},
 			body: JSON.stringify(body),
-		}, 30000);
+		}); // default timeout = 45s
 
 		if (!res.ok) {
 			const text = await res.text().catch(() => "");
