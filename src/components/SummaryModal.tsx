@@ -1,5 +1,6 @@
 import type { Article } from '../types/article'
 import { useEffect } from 'react'
+import { GradientBorder } from 'react-gradient-borders'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -89,29 +90,19 @@ export function SummaryModal({
         onClick={onClose}
       />
 
-      {/* Glow wrapper : lueur orange tournante autour de la bordure pendant le chargement */}
-      <div className="relative max-h-[90vh] w-full max-w-2xl">
-        {/* Glow ring — derrière la modale, masqué au centre par le fond opaque */}
-        <div
-          className={[
-            'absolute -inset-[3px] rounded-[1.3rem] transition-opacity duration-500',
-            isLoading ? 'opacity-60 animate-border-glow' : 'opacity-0',
-          ].join(' ')}
-          style={{
-            background: [
-              'conic-gradient(',
-              'from 0deg,',
-              'transparent 50%,',
-              'rgba(234,88,12,0.06) 62%,',
-              'rgba(234,88,12,0.15) 72%,',
-              'rgba(180,83,9,0.06) 82%,',
-              'transparent 100%',
-              ')',
-            ].join(''),
-          }}
-        />
-
-        <div className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
+      {/* GradientBorder SVG : lumière qui parcourt la bordure en continu pendant le stream */}
+      <GradientBorder
+        colors={['#b45309', '#ea580c', '#b45309']}
+        strokeWidth={2}
+        borderRadius={20}
+        animationMode="loop"
+        duration={4000}
+        trigger="manual"
+        active={isLoading}
+        showWhenInactive={false}
+        borderPosition="inner"
+      >
+        <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
           {/* En-tête */}
           <div className="flex shrink-0 items-start justify-between border-b border-va-mist/50 p-6 dark:border-white/10">
             <div>
@@ -168,7 +159,7 @@ export function SummaryModal({
             </button>
           </div>
         </div>
-      </div>
+      </GradientBorder>
     </div>
   )
 }

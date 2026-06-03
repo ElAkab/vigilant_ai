@@ -13,7 +13,6 @@
   --color-va-teal: #0f766e;
   --color-va-ink-muted: #5c5a53;
   --animate-insight-appear: insight-appear 700ms ease-out both;
-  --animate-border-glow: border-glow 3s linear infinite;
 }
 
 @layer base {
@@ -42,10 +41,6 @@
       transition-duration: 0.001ms !important;
     }
   }
-}
-
-@keyframes border-glow {
-  to { transform: rotate(360deg); }
 }
 
 @keyframes insight-appear {
