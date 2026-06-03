@@ -13,6 +13,8 @@
   --color-va-teal: #0f766e;
   --color-va-ink-muted: #5c5a53;
   --animate-insight-appear: insight-appear 700ms ease-out both;
+  --animate-border-glow: border-glow 4s linear infinite;
+  --animate-border-glow-in: border-glow-in 600ms ease-out both;
 }
 
 @layer base {
@@ -63,5 +65,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes border-glow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes border-glow-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
   }
 }

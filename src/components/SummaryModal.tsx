@@ -1,5 +1,5 @@
 import type { Article } from '../types/article'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -53,9 +53,6 @@ export function SummaryModal({
   isLoading,
   error,
 }: SummaryModalProps) {
-  // Loading dots n'apparaissent qu'après 2s sans contenu
-  const [showLoadingDots, setShowLoadingDots] = useState(false)
-
   // Split summary into main text and insight
   const parts = summary
     ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/)
@@ -67,16 +64,6 @@ export function SummaryModal({
 
   const hasContent = summary !== null && summary.length > 0
   const isStreaming = isLoading && hasContent
-
-  // Gérer le timer des loading dots (apparaissent après 2s, disparaissent immédiatement)
-  useEffect(() => {
-    if (isLoading && !hasContent) {
-      const id = window.setTimeout(() => setShowLoadingDots(true), 2000)
-      return () => { window.clearTimeout(id) }
-    }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset immédiat: éviter le flash que setTimeout(0) causerait
-    setShowLoadingDots(false)
-  }, [isLoading, hasContent])
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -102,7 +89,21 @@ export function SummaryModal({
         onClick={onClose}
       />
 
-      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
+      {/* Wrapper for glow + modal */}
+      <div className="relative max-h-[90vh] w-full max-w-2xl">
+        {/* Rotating border glow — only visible during loading/streaming */}
+        {isLoading && (
+          <div
+            aria-hidden="true"
+            className="absolute -inset-[2px] rounded-[1.325rem] animate-border-glow animate-border-glow-in"
+            style={{
+              backgroundImage: `conic-gradient(from 0deg, transparent 25%, rgba(180,83,9,0.3) 50%, rgba(234,88,12,0.6) 62%, rgba(180,83,9,0.3) 74%, transparent 100%)`,
+            }}
+          />
+        )}
+
+        {/* Modal box */}
+        <div className="relative z-10 flex flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
         {/* En-tête */}
         <div className="flex shrink-0 items-start justify-between border-b border-va-mist/50 p-6 dark:border-white/10">
           <div>
@@ -128,15 +129,6 @@ export function SummaryModal({
               {/* Curseur clignotant pendant le streaming */}
               {isStreaming && (
                 <span className="inline-block w-2 h-4 ml-0.5 bg-va-rust/60 animate-pulse rounded-sm align-middle" />
-              )}
-
-              {/* Loading dots après 2s sans contenu */}
-              {showLoadingDots && !hasContent && (
-                <div className="flex items-center justify-center space-x-2 py-12 text-va-ink-muted dark:text-[#a9a29a]">
-                  <div className="h-3 w-3 animate-bounce rounded-full bg-va-rust/60" style={{ animationDelay: '0ms' }} />
-                  <div className="h-3 w-3 animate-bounce rounded-full bg-va-rust/60" style={{ animationDelay: '150ms' }} />
-                  <div className="h-3 w-3 animate-bounce rounded-full bg-va-rust/60" style={{ animationDelay: '300ms' }} />
-                </div>
               )}
 
               {/* Bloc Avis : animation CSS @keyframes native — se déclenche quand la div entre dans le DOM */}
@@ -166,6 +158,7 @@ export function SummaryModal({
           >
             Fermer
           </button>
+        </div>
         </div>
       </div>
     </div>
