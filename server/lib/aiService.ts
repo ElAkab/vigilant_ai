@@ -115,16 +115,28 @@ export class AIService {
 
 		for (let i = 0; i < attempts; i++) {
 			const model = this.models[this.currentModelIndex];
+			const startedAt = Date.now();
 
 			try {
-				const response = await this.callOpenRouter(model, prompt);
-				// Reset to primary on success
+				const response = await withRetry(
+					() => this.callOpenRouter(model, prompt),
+					{
+						maxRetries: 2,
+						baseDelayMs: 1000,
+						shouldRetry: isRetryable,
+					},
+				);
+				console.log(
+					`[AI] ✅ ${model.id} (non-stream) — ${Date.now() - startedAt}ms`,
+				);
 				this.currentModelIndex = 0;
 				return response;
 			} catch (err) {
 				lastError = err as Error;
 				this.recordFailure(model.id, (err as Error).message);
-				console.error(`[AI] Modèle ${model.id} en échec:`, (err as Error).message);
+				console.error(
+					`[AI] ❌ ${model.id} — ${Date.now() - startedAt}ms — ${(err as Error).message}`,
+				);
 				this.currentModelIndex =
 					(this.currentModelIndex + 1) % this.models.length;
 			}
@@ -141,11 +153,17 @@ export class AIService {
 		prompt: string,
 	): Promise<{ stream: AsyncIterable<{ text: () => string }> }> {
 		await this.ensureModelsLoaded();
-		
+
 		if (this.mockMode) {
 			return this.generateMockContentStream(prompt);
 		}
 
+		return { stream: this.multiModelStreamGenerator(prompt) };
+	}
+
+	private async *multiModelStreamGenerator(
+		prompt: string,
+	): AsyncGenerator<{ text: () => string }, void, void> {
 		const attempts = this.models.length;
 		let lastError: Error | null = null;
 
@@ -154,26 +172,18 @@ export class AIService {
 			const startedAt = Date.now();
 
 			try {
-				const callResult = await withRetry(
-					() => this.callOpenRouterStream(model, prompt),
-					{
-						maxRetries: 2,
-						baseDelayMs: 1000,
-						shouldRetry: isRetryable,
-					},
+				const modelStream = this.callOpenRouterStream(
+					model,
+					prompt,
 				);
-
+				for await (const chunk of modelStream) {
+					yield { text: () => chunk };
+				}
 				console.log(
 					`[AI] ✅ ${model.id} — ${Date.now() - startedAt}ms`,
 				);
 				this.currentModelIndex = 0;
-
-				async function* gen() {
-					for await (const chunk of callResult.stream) {
-						yield { text: () => chunk };
-					}
-				}
-				return { stream: gen() };
+				return;
 			} catch (err) {
 				lastError = err as Error;
 				console.error(
