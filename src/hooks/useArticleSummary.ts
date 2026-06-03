@@ -47,6 +47,7 @@ export function useArticleSummary() {
 
   const requestSeq = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
+  const inFlightRef = useRef<string | null>(null)
 
   const reset = useCallback(() => {
     requestSeq.current += 1
@@ -75,15 +76,23 @@ export function useArticleSummary() {
 
   const generateSummary = useCallback(
     async (params: GenerateSummaryParams) => {
+      // Guard: prevent duplicate concurrent calls for the same article
+      if (inFlightRef.current === params.article.id) {
+        console.warn(`[Summary] Already generating for ${params.article.id} — skipping duplicate`)
+        return
+      }
+
       const requestId = ++requestSeq.current
       abortRef.current?.abort()
       const abort = new AbortController()
       abortRef.current = abort
+      inFlightRef.current = params.article.id
 
       // Vérifier le cache sessionStorage d'abord
       const cached = getCached(params.article.id)
       if (cached) {
         setState({ summary: cached, loading: false, error: null })
+        inFlightRef.current = null
         return
       }
 
@@ -95,20 +104,21 @@ export function useArticleSummary() {
         try {
           if (attempt > 0) {
             await delay(RETRY_DELAY_MS)
-            if (requestId !== requestSeq.current) return
+            if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
             setState((prev) => ({ ...prev, summary: '' }))
           }
 
           const result = await attemptSummarize(params, requestId, abort)
 
-          if (requestId !== requestSeq.current) return
+          if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
           // Sauvegarder dans le cache
           if (result.summary) setCache(params.article.id, result.summary)
           setState({ summary: result.summary, loading: false, error: null })
+          inFlightRef.current = null
           return
         } catch (err) {
-          if (requestId !== requestSeq.current) return
-          if (err instanceof Error && err.name === 'AbortError') return
+          if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
+          if (err instanceof Error && err.name === 'AbortError') { inFlightRef.current = null; return }
           lastError = err instanceof Error ? err : new Error('Erreur inconnue')
 
           console.warn(
@@ -124,6 +134,7 @@ export function useArticleSummary() {
               loading: false,
               error: lastError?.message || 'Échec du résumé après plusieurs tentatives',
             }))
+            inFlightRef.current = null
             return
           }
         }
