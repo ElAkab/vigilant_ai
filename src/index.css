@@ -12,6 +12,7 @@
   --color-va-rust-bright: #ea580c;
   --color-va-teal: #0f766e;
   --color-va-ink-muted: #5c5a53;
+  --animate-insight-appear: insight-appear 700ms ease-out both;
 }
 
 @layer base {
@@ -39,6 +40,17 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.001ms !important;
     }
+  }
+}
+
+@keyframes insight-appear {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

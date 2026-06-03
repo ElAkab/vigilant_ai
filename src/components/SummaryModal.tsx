@@ -1,5 +1,5 @@
 import type { Article } from '../types/article'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -55,9 +55,6 @@ export function SummaryModal({
 }: SummaryModalProps) {
   // Loading dots n'apparaissent qu'après 2s sans contenu
   const [showLoadingDots, setShowLoadingDots] = useState(false)
-  // L'insight apparaît avec un délai après la fin du streaming
-  const [insightVisible, setInsightVisible] = useState(false)
-  const prevSummaryRef = useRef<string | null>(null)
 
   // Split summary into main text and insight
   const parts = summary
@@ -80,21 +77,6 @@ export function SummaryModal({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset immédiat: éviter le flash que setTimeout(0) causerait
     setShowLoadingDots(false)
   }, [isLoading, hasContent])
-
-  // Gérer l'apparition de l'insight (immédiat — l'animation CSS duration-700 suffit)
-  useEffect(() => {
-    if (!isLoading && summary && insight && summary !== prevSummaryRef.current) {
-      prevSummaryRef.current = summary
-      setInsightVisible(true)
-      return
-    }
-    if (!summary) {
-      prevSummaryRef.current = null
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset immédiat du bloc insight
-      setInsightVisible(false)
-      return
-    }
-  }, [isLoading, summary, insight])
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -157,17 +139,9 @@ export function SummaryModal({
                 </div>
               )}
 
-              {/* Bloc Avis avec animation fluide */}
+              {/* Bloc Avis : animation CSS @keyframes native — se déclenche quand la div entre dans le DOM */}
               {insight && (
-                <div
-                  className={[
-                    'mt-6 p-5 rounded-xl border transition-all duration-700 ease-out',
-                    'border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5',
-                    insightVisible
-                      ? 'opacity-100 translate-y-0'
-                      : 'opacity-0 translate-y-3',
-                  ].join(' ')}
-                >
+                <div className="mt-6 p-5 rounded-xl border border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5 animate-insight-appear">
                   {renderMarkdown(insight)}
                 </div>
               )}
