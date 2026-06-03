@@ -71,28 +71,28 @@ export function SummaryModal({
   const hasContent = summary !== null && summary.length > 0
   const isStreaming = isLoading && hasContent
 
-  // Gérer le timer des loading dots (setState uniquement dans le callback du timer)
+  // Gérer le timer des loading dots (apparaissent après 2s, disparaissent immédiatement)
   useEffect(() => {
     if (isLoading && !hasContent) {
       const id = window.setTimeout(() => setShowLoadingDots(true), 2000)
       return () => { window.clearTimeout(id) }
     }
-    // Reset immédiat via microtask pour éviter setState synchrone
-    const id = window.setTimeout(() => setShowLoadingDots(false), 0)
-    return () => { window.clearTimeout(id) }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset immédiat: éviter le flash que setTimeout(0) causerait
+    setShowLoadingDots(false)
   }, [isLoading, hasContent])
 
-  // Gérer l'apparition de l'insight
+  // Gérer l'apparition de l'insight (immédiat — l'animation CSS duration-700 suffit)
   useEffect(() => {
     if (!isLoading && summary && insight && summary !== prevSummaryRef.current) {
       prevSummaryRef.current = summary
-      const id = window.setTimeout(() => setInsightVisible(true), 600)
-      return () => window.clearTimeout(id)
+      setInsightVisible(true)
+      return
     }
     if (!summary) {
       prevSummaryRef.current = null
-      const id = window.setTimeout(() => setInsightVisible(false), 0)
-      return () => window.clearTimeout(id)
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset immédiat du bloc insight
+      setInsightVisible(false)
+      return
     }
   }, [isLoading, summary, insight])
 
