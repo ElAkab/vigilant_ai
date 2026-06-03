@@ -49,7 +49,7 @@ Tu es un **développeur Fullstack Senior** expert en **TypeScript**, **React** e
 - **Sécurité des secrets**: ne commite jamais de clés dans `.env`. Utiliser `.env.example` pour documenter les variables et ajouter `.env` à `.gitignore`. Revoke/rotate toute clé exposée immédiatement.
 - **Protocole MCP (Model Context Protocol) & Écosystème d'Outils :**
   - **Gestion du contexte & Veille Tech :** S'appuyer exclusivement sur l'outil **Context7** (configuré via `CONTEXT7_API_KEY` côté serveur) pour maintenir l'historique, garantir la pertinence des conversations et rester aligné en temps réel sur les dernières documentations technologiques.
-  - **Recherche Web & Actualités :** Déclencher systématiquement **DuckDuckGo** pour toute recherche d'actualités fraîches, de documentations externes ou de tutoriels récents nécessaires au projet.
+  - **Recherche Web & Actualités :** Déclencher systématiquement **Exa MCP** pour toute recherche d'actualités fraîches, de documentations externes ou de tutoriels récents nécessaires au projet.
   - **Raisonnement, Architecture & Code :** Activer impérativement le protocole **Sequential Thinking** (pensée séquentielle) pour structurer les réflexions complexes, concevoir l'architecture technique, planifier le code et interagir avec l'écosystème GitHub (via `GITHUB_TOKEN` pour la gestion des Issues, PRs et fichiers).
 
 ## 🛠️ Gestion des erreurs et résilience

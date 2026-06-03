@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import { SelectableArticleCard } from '../components/SelectableArticleCard'
 import { SummaryModal } from '../components/SummaryModal'
@@ -15,7 +15,7 @@ export function ArticlesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [summaryGen, setSummaryGen] = useState(0)
 
-  const { summary, loading: summaryLoading, error: summaryError, generateSummary, reset } =
+  const { summary, loading: summaryLoading, error: summaryError, generateSummary } =
     useArticleSummary()
 
   const pageSize = DEFAULT_PAGE_SIZE
@@ -43,9 +43,8 @@ export function ArticlesPage() {
     return items.find((a) => a.id === effectiveSelectedId) ?? null
   }, [items, effectiveSelectedId])
 
-  useEffect(() => {
-    reset()
-  }, [effectiveSelectedId, reset])
+  // reset() is called by generateSummary() itself (requestSeq++ aborts previous)
+  // No useEffect needed — it was racing with generateSummary's own abort controller
 
   const onGenerateSummary = useCallback(
     (article: Article) => {
