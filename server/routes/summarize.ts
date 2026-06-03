@@ -122,11 +122,16 @@ export async function handleSummarize(req: Request): Promise<Response> {
 
 	const prompt = makePrompt(body.article, maxLength);
 
+	const summarizeStarted = Date.now();
 	const result = await globalAIService.generateContent(prompt);
 	const text = result.response.text()?.replace(/\s+/g, " ").trim() ?? "";
 	const summary = clip(
 		text || `Résumé indisponible. Source: ${body.article.urlSource}`,
 		maxLength,
+	);
+
+	console.log(
+		`[Summarize] ${body.article.id} (non-stream) → ${Date.now() - summarizeStarted}ms`,
 	);
 
 	summaryCache.set(key, summary);
@@ -196,6 +201,8 @@ export async function handleSummarizeStream(req: Request): Promise<Response> {
 
 	let accumulated = "";
 
+	const streamSummarizeStarted = Date.now();
+
 	const stream = new ReadableStream<Uint8Array>({
 		async start(controller) {
 			function send(event: string, data: unknown) {
@@ -218,9 +225,16 @@ export async function handleSummarizeStream(req: Request): Promise<Response> {
 
 				const final = clip(accumulated, maxLength);
 				if (final) summaryCache.set(key, final);
+
+				console.log(
+					`[Summarize] ${body.article.id} (stream) → ${Date.now() - streamSummarizeStarted}ms`,
+				);
 				send("done", { summary: final, cached: false });
 			} catch (err) {
 				const message = err instanceof Error ? err.message : "Erreur inconnue";
+				console.error(
+					`[Summarize] ${body.article.id} (stream) ❌ → ${message}`,
+				);
 				send("error", { message });
 			} finally {
 				controller.close();

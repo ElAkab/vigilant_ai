@@ -111,7 +111,14 @@ export function useArticleSummary() {
           if (err instanceof Error && err.name === 'AbortError') return
           lastError = err instanceof Error ? err : new Error('Erreur inconnue')
 
+          console.warn(
+            `[Summary] Échec tentative ${attempt + 1}/${MAX_RETRIES + 1}: ${lastError.message}`,
+          )
+
           if (attempt === MAX_RETRIES) {
+            console.error(
+              `[Summary] Échec définitif après ${MAX_RETRIES + 1} tentatives: ${lastError.message}`,
+            )
             setState((prev) => ({
               ...prev,
               loading: false,

@@ -6,6 +6,50 @@ function getEnv(key: string): string | undefined {
 	return process.env[key]?.trim() || undefined;
 }
 
+// --- Helpers retry/fallback ---
+
+function isRetryable(err: Error): boolean {
+	const msg = err.message.toLowerCase();
+	return (
+		msg.includes("429") ||
+		msg.includes("503") ||
+		msg.includes("timeout") ||
+		msg.includes("econnrefused") ||
+		msg.includes("abort")
+	);
+}
+
+async function withRetry<T>(
+	fn: () => Promise<T>,
+	options: {
+		maxRetries: number;
+		baseDelayMs: number;
+		shouldRetry: (err: Error) => boolean;
+	},
+): Promise<T> {
+	let lastError: Error;
+	for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
+		try {
+			return await fn();
+		} catch (err) {
+			lastError = err as Error;
+			if (
+				attempt === options.maxRetries ||
+				!options.shouldRetry(lastError)
+			) {
+				throw lastError;
+			}
+			const jitter = 0.5 + Math.random() * 0.5;
+			const delay = options.baseDelayMs * Math.pow(2, attempt) * jitter;
+			console.warn(
+				`[AI] Retry ${attempt + 1}/${options.maxRetries} in ${Math.round(delay)}ms: ${lastError.message}`,
+			);
+			await new Promise((r) => setTimeout(r, delay));
+		}
+	}
+	throw lastError!;
+}
+
 export type AIResponse = {
 	response: {
 		text: () => string;
@@ -102,18 +146,50 @@ export class AIService {
 			return this.generateMockContentStream(prompt);
 		}
 
-		const model = this.models[this.currentModelIndex];
-		if (!model) throw new Error("No AI models available");
+		const attempts = this.models.length;
+		let lastError: Error | null = null;
 
-		const stream = this.callOpenRouterStream(model, prompt);
-		
-		async function* gen() {
-			for await (const chunk of stream) {
-				yield { text: () => chunk };
+		for (let i = 0; i < attempts; i++) {
+			const model = this.models[this.currentModelIndex];
+			const startedAt = Date.now();
+
+			try {
+				const callResult = await withRetry(
+					() => this.callOpenRouterStream(model, prompt),
+					{
+						maxRetries: 2,
+						baseDelayMs: 1000,
+						shouldRetry: isRetryable,
+					},
+				);
+
+				console.log(
+					`[AI] ✅ ${model.id} — ${Date.now() - startedAt}ms`,
+				);
+				this.currentModelIndex = 0;
+
+				async function* gen() {
+					for await (const chunk of callResult.stream) {
+						yield { text: () => chunk };
+					}
+				}
+				return { stream: gen() };
+			} catch (err) {
+				lastError = err as Error;
+				console.error(
+					`[AI] ❌ ${model.id} — ${Date.now() - startedAt}ms — ${lastError.message}`,
+				);
+				this.recordFailure(model.id, lastError.message);
+				this.currentModelIndex =
+					(this.currentModelIndex + 1) % this.models.length;
 			}
 		}
-		
-		return { stream: gen() };
+
+		throw new HttpError(
+			502,
+			"AI_SERVICE_ERROR",
+			`All OpenRouter models failed: ${lastError?.message}`,
+		);
 	}
 
 	private async *callOpenRouterStream(
@@ -237,7 +313,7 @@ export class AIService {
 	private async fetchWithTimeout(
 		url: string,
 		init: RequestInit,
-		timeoutMs = 30000, // 30 secondes pour les modèles gratuits lents
+		timeoutMs = 45000, // 45s pour les modèles gratuits lents
 	): Promise<Response> {
 		const controller = new AbortController();
 		const id = setTimeout(() => controller.abort(), timeoutMs);
