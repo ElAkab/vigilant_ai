@@ -119,23 +119,28 @@ export function ArticlesPage() {
                   Chargement de la sélection curatoriale…
                 </div>
               ) : items.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-black/[0.06] bg-white/60 p-10 text-center backdrop-blur-sm dark:border-white/[0.06] dark:bg-zinc-900/50">
-                  <p className="font-display text-lg font-semibold text-va-ink dark:text-[#f3eee6]">
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <img
+                    src="/vigilan-ai.png"
+                    alt="Vigilant AI"
+                    className="mb-6 h-14 w-14 rounded-2xl shadow-[0_12px_30px_-14px_rgb(16_21_32/0.35)] ring-1 ring-black/[0.06] dark:ring-white/[0.08]"
+                  />
+                  <p className="font-display text-xl font-semibold tracking-[-0.02em] text-va-ink dark:text-[#f3eee6]">
                     Aucun article pour le moment.
                   </p>
-                  <p className="mt-2 text-xs text-va-ink-muted/70 dark:text-[#8f877c]/70">
+                  <p className="mt-2 max-w-sm text-xs text-va-ink-muted/55 dark:text-[#8f877c]/55">
                     Les développeurs peuvent configurer leurs flux dans{' '}
-                    <code className="font-mono text-va-ink-muted dark:text-[#b7aea3]">
+                    <code className="rounded bg-black/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-va-ink-muted dark:bg-white/[0.04] dark:text-[#b7aea3]">
                       server/config/sources.ts
                     </code>
                     .
                   </p>
-                  <div className="mt-5 flex flex-wrap justify-center gap-3">
+                  <div className="mt-4">
                     <a
                       href="https://hnrss.org/"
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center justify-center rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/50 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:hover:bg-zinc-900/60"
+                      className="inline-flex items-center justify-center rounded-lg border border-black/[0.06] bg-white/60 px-3 py-1.5 font-reading text-[11px] font-medium text-va-ink-muted/70 transition hover:border-black/[0.12] hover:text-va-ink-soft dark:border-white/[0.08] dark:bg-zinc-900/40 dark:text-[#8f877c]/70 dark:hover:border-white/[0.15] dark:hover:text-va-mist"
                     >
                       Exemple de flux RSS
                     </a>
