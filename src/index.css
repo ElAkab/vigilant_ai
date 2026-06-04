@@ -76,3 +76,60 @@
     transform: translateY(0);
   }
 }
+
+/* ── Style des selects (progressive enhancement Chrome 135+) ── */
+/* Inspiré de appearance: base-select — CSS natif, zéro JS */
+select.base-select {
+  appearance: base-select;
+}
+
+/* Masquer l'icône native — on a nos propres flèches SVG */
+select.base-select::picker-icon {
+  display: none;
+}
+
+select.base-select::picker(select) {
+  appearance: base-select;
+  border: 1px solid oklch(0.88 0.03 90);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  margin-top: 0.25rem;
+  background: oklch(0.97 0.02 90);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.08);
+  font-family: "Literata", ui-serif, Georgia, serif;
+}
+
+:root.dark select.base-select::picker(select),
+.dark select.base-select::picker(select) {
+  background: oklch(0.18 0.01 90);
+  border-color: oklch(0.25 0.01 90);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+select.base-select option {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: oklch(0.22 0.02 90);
+}
+
+select.base-select option:hover {
+  background: oklch(0 0 0 / 0.04);
+}
+
+select.base-select option:checked {
+  background: oklch(0.55 0.11 52 / 0.12);
+  font-weight: 600;
+}
+
+.dark select.base-select option {
+  color: oklch(0.88 0.02 90);
+}
+
+.dark select.base-select option:hover {
+  background: oklch(1 0 0 / 0.06);
+}
+
+.dark select.base-select option:checked {
+  background: oklch(0.55 0.11 52 / 0.22);
+}
