@@ -25,12 +25,12 @@
 		@apply min-h-dvh bg-va-paper font-reading text-va-ink antialiased dark:bg-zinc-950 dark:text-[#eae3d9];
 		background-image:
 			radial-gradient(
-				900px 420px at 12% 82%,
+				900px 420px at 12% 5%,
 				oklch(0.93 0.09 65 / 0.40),
 				transparent 48%
 			),
 			radial-gradient(
-				700px 360px at 88% 0%,
+				700px 360px at 88% 82%,
 				oklch(0.88 0.06 185 / 0.28),
 				transparent 55%
 			);
