@@ -17,9 +17,9 @@
     "@tailwindcss/vite": "^4.2.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "react-gradient-borders": "^1.0.0",
     "rss-parser": "^3.13.0",
-    "tailwindcss": "^4.2.4"
+    "tailwindcss": "^4.2.4",
+    "yojimbo": "^2.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -1,6 +1,6 @@
 import type { Article } from '../types/article'
 import { useEffect } from 'react'
-import { GradientBorder } from 'react-gradient-borders'
+import { Yojimbo } from 'yojimbo'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -64,7 +64,6 @@ export function SummaryModal({
     : ''
 
   const hasContent = summary !== null && summary.length > 0
-  const isStreaming = isLoading && hasContent
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -90,20 +89,23 @@ export function SummaryModal({
         onClick={onClose}
       />
 
-      {/* GradientBorder SVG : lumière qui parcourt la bordure en continu pendant le stream */}
-      <GradientBorder
-        colors={['#b45309', '#ea580c', '#b45309']}
-        strokeWidth={2}
-        borderRadius={20}
-        animationMode="loop"
-        duration={4000}
-        trigger="manual"
-        active={isLoading}
-        showWhenInactive={false}
-        borderPosition="outer"
-        borderOffset={2}
-      >
-        <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
+      {/* Modale avec Yojimbo — faisceau orange subtil qui parcourt la bordure pendant le stream */}
+      <div className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[1.25rem] border border-va-mist/80 bg-[linear-gradient(145deg,rgb(255_255_255/0.95)_0%,rgb(251_246_236/0.9)_100%)] shadow-2xl dark:border-white/10 dark:bg-[linear-gradient(150deg,rgb(29_32_44/0.98)_0%,rgb(18_21_30/0.98)_100%)]">
+        {/* Yojimbo beam — train de lumière orange longeant la bordure */}
+        {isLoading && (
+          <Yojimbo
+            colorFrom="#b45309"
+            colorTo="#ea580c"
+            speed={30}
+            thickness={1}
+            blur={8}
+            glowBlur={20}
+            glowOpacity={0.3}
+            beams={1}
+          />
+        )}
+
+        <div className="flex flex-col overflow-hidden rounded-[1.25rem]">
           {/* En-tête */}
           <div className="flex shrink-0 items-start justify-between border-b border-va-mist/50 p-6 dark:border-white/10">
             <div>
@@ -125,11 +127,6 @@ export function SummaryModal({
             ) : (
               <div className="space-y-4">
                 {hasContent && renderMarkdown(mainSummary || '')}
-
-                {/* Curseur clignotant pendant le streaming */}
-                {isStreaming && (
-                  <span className="inline-block w-2 h-4 ml-0.5 bg-va-rust/60 animate-pulse rounded-sm align-middle" />
-                )}
 
                 {/* Bloc Avis : animation CSS @keyframes native — se déclenche quand la div entre dans le DOM */}
                 {insight && (
@@ -160,7 +157,7 @@ export function SummaryModal({
             </button>
           </div>
         </div>
-      </GradientBorder>
+      </div>
     </div>
   )
 }
