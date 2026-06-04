@@ -71,14 +71,14 @@ export function SearchBar({
         )}
       </div>
 
-      {/* Filtres + Tri */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* Filtres + Tri — responsive */}
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
         {/* Dropdown Source */}
         <div className="relative">
           <select
             value={source}
             onChange={(e) => onSourceChange(e.target.value)}
-            className={selectBase}
+            className={`${selectBase} w-full sm:w-auto`}
           >
             {SOURCES.map((s) => (
               <option key={s.value} value={s.value}>
@@ -103,7 +103,7 @@ export function SearchBar({
           <select
             value={categorie}
             onChange={(e) => onCategorieChange(e.target.value as Categorie | '')}
-            className={selectBase}
+            className={`${selectBase} w-full sm:w-auto`}
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -124,11 +124,11 @@ export function SearchBar({
         </div>
 
         {/* Toggle Tri */}
-        <div className="flex rounded-xl border border-va-mist bg-white/90 p-0.5 dark:border-white/15 dark:bg-zinc-950/40">
+        <div className="col-span-2 flex rounded-xl border border-va-mist bg-white/90 p-0.5 dark:border-white/15 dark:bg-zinc-950/40 sm:col-span-1">
           <button
             type="button"
             onClick={() => onSortChange('recent')}
-            className={`rounded-lg px-3 py-1.5 font-reading text-sm font-medium transition ${
+            className={`flex-1 rounded-lg px-3 py-1.5 font-reading text-sm font-medium transition ${
               sort === 'recent'
                 ? 'bg-va-ink text-va-paper shadow-sm dark:bg-[#f3eee6] dark:text-va-ink'
                 : 'text-va-ink-muted hover:text-va-ink-soft dark:text-[#8f877c] dark:hover:text-va-mist'
@@ -139,7 +139,7 @@ export function SearchBar({
           <button
             type="button"
             onClick={() => onSortChange('ancien')}
-            className={`rounded-lg px-3 py-1.5 font-reading text-sm font-medium transition ${
+            className={`flex-1 rounded-lg px-3 py-1.5 font-reading text-sm font-medium transition ${
               sort === 'ancien'
                 ? 'bg-va-ink text-va-paper shadow-sm dark:bg-[#f3eee6] dark:text-va-ink'
                 : 'text-va-ink-muted hover:text-va-ink-soft dark:text-[#8f877c] dark:hover:text-va-mist'
@@ -150,7 +150,7 @@ export function SearchBar({
         </div>
 
         {/* Compteur de résultats */}
-        <span className="ml-auto font-reading text-xs text-va-ink-muted/60 dark:text-[#8f877c]/60">
+        <span className="col-span-2 mt-0.5 text-center font-reading text-xs text-va-ink-muted/60 sm:col-span-1 sm:ml-auto sm:mt-0 sm:text-left dark:text-[#8f877c]/60">
           {resultCount} article{resultCount !== 1 ? 's' : ''}
         </span>
       </div>
