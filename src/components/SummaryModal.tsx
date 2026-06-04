@@ -52,6 +52,67 @@ function renderMarkdown(text: string, showCursor = false) {
   return <div dangerouslySetInnerHTML={{ __html: rendered + cursor }} />
 }
 
+// ── Sous-composant : barre de progression + messages évolutifs ──
+// key={generationId} force le remount → state remis à zéro proprement
+
+type LoadingIndicatorProps = {
+  serverConnected: boolean
+}
+
+function LoadingIndicator({ serverConnected }: LoadingIndicatorProps) {
+  const [rawStage, setRawStage] = useState<number>(0)
+  const startRef = useRef<number>(0)
+
+  useEffect(() => {
+    startRef.current = Date.now()
+
+    const checkStage = () => {
+      const elapsed = Date.now() - startRef.current
+      if (serverConnected) {
+        if (elapsed > 25_000) setRawStage(3)
+        else if (elapsed > 8_000) setRawStage(2)
+        else if (elapsed > 3_000) setRawStage(1)
+      } else {
+        if (elapsed > 15_000) setRawStage(3)
+        else if (elapsed > 6_000) setRawStage(2)
+      }
+    }
+    checkStage()
+    const id = setInterval(checkStage, 2000)
+    return () => clearInterval(id)
+  }, [serverConnected])
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-12">
+      <div className="h-1 w-48 overflow-hidden rounded-full bg-va-mist/30 dark:bg-white/5">
+        <div
+          className={[
+            "h-full rounded-full transition-all duration-1000",
+            rawStage === 0
+              ? "w-1/4 bg-va-rust/40"
+              : rawStage === 1
+                ? "w-2/5 bg-va-rust/50"
+                : rawStage === 2
+                  ? "w-3/5 bg-va-rust/60"
+                  : "w-[85%] bg-red-400/50",
+          ].join(" ")}
+        />
+      </div>
+      <span className="text-sm text-va-ink-muted/50 dark:text-[#8f877c]/50">
+        {!serverConnected && rawStage <= 1 && "Connexion au serveur IA…"}
+        {!serverConnected && rawStage === 2 && "Le serveur tarde un peu…"}
+        {!serverConnected && rawStage === 3 && "Le serveur ne répond pas — n'hésite pas à réessayer"}
+        {serverConnected && rawStage === 0 && "Le modèle IA démarre…"}
+        {serverConnected && rawStage === 1 && "Le modèle IA rédige le résumé…"}
+        {serverConnected && rawStage === 2 && "Modèle gratuit un peu lent, patience…"}
+        {serverConnected && rawStage === 3 && "Le modèle tarde — n'hésite pas à réessayer"}
+      </span>
+    </div>
+  )
+}
+
+// ── Composant principal ──
+
 export function SummaryModal({
   isOpen,
   onClose,
@@ -72,35 +133,6 @@ export function SummaryModal({
     : ''
 
   const hasContent = summary !== null && summary.length > 0
-
-  // ── Timer de chargement (seuils serrés) ──
-  const loadStartRef = useRef<number>(0)
-  const [rawStage, setRawStage] = useState<number>(0)
-  const loadStage = !isLoading || hasContent ? 0 : rawStage
-
-  // Reset quand on génère un nouveau résumé
-  useEffect(() => {
-    if (!isLoading || hasContent) return
-    loadStartRef.current = Date.now()
-    setRawStage(0)
-
-    const checkStage = () => {
-      const elapsed = Date.now() - loadStartRef.current
-      if (serverConnected) {
-        // Après connexion serveur, on passe aux étapes de génération
-        if (elapsed > 25_000) setRawStage(3)
-        else if (elapsed > 8_000) setRawStage(2)
-        else if (elapsed > 3_000) setRawStage(1)
-      } else {
-        // En attente de connexion
-        if (elapsed > 15_000) setRawStage(3)
-        else if (elapsed > 6_000) setRawStage(2)
-      }
-    }
-    checkStage()
-    const id = setInterval(checkStage, 2000)
-    return () => clearInterval(id)
-  }, [isLoading, hasContent, serverConnected, generationId])
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -153,33 +185,12 @@ export function SummaryModal({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Indicateur de chargement progressif */}
+              {/* Indicateur de chargement — sous-composant avec key pour reset state */}
               {isLoading && !hasContent && (
-                <div className="flex flex-col items-center justify-center gap-3 py-12">
-                  <div className="h-1 w-48 overflow-hidden rounded-full bg-va-mist/30 dark:bg-white/5">
-                    <div
-                      className={[
-                        "h-full rounded-full transition-all duration-1000",
-                        loadStage === 0
-                          ? "w-1/4 bg-va-rust/40"
-                          : loadStage === 1
-                            ? "w-2/5 bg-va-rust/50"
-                            : loadStage === 2
-                              ? "w-3/5 bg-va-rust/60"
-                              : "w-[85%] bg-red-400/50",
-                      ].join(" ")}
-                    />
-                  </div>
-                  <span className="text-sm text-va-ink-muted/50 dark:text-[#8f877c]/50">
-                    {!serverConnected && loadStage <= 1 && "Connexion au serveur IA…"}
-                    {!serverConnected && loadStage === 2 && "Le serveur tarde un peu…"}
-                    {!serverConnected && loadStage === 3 && "Le serveur ne répond pas — n'hésite pas à réessayer"}
-                    {serverConnected && loadStage === 0 && "Le modèle IA démarre…"}
-                    {serverConnected && loadStage === 1 && "Le modèle IA rédige le résumé…"}
-                    {serverConnected && loadStage === 2 && "Modèle gratuit un peu lent, patience…"}
-                    {serverConnected && loadStage === 3 && "Le modèle tarde — n'hésite pas à réessayer"}
-                  </span>
-                </div>
+                <LoadingIndicator
+                  key={generationId}
+                  serverConnected={serverConnected}
+                />
               )}
 
               {/* Contenu avec animation d'apparition */}
