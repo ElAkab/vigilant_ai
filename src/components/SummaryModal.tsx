@@ -15,41 +15,50 @@ type SummaryModalProps = {
 
 function renderMarkdown(text: string, showCursor = false) {
   const lines = text.split('\n')
+  const cursorHtml = '<span class="inline-block w-2 h-4 ml-0.5 bg-va-rust/60 animate-pulse rounded-sm align-middle"></span>'
+
+  // Repérer la dernière ligne non vide pour y injecter le curseur
+  let lastContentIdx = -1
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i].trim() !== '') { lastContentIdx = i; break }
+  }
+
   const rendered = lines
-    .map((line) => {
+    .map((line, i) => {
       let processed = line
       processed = processed.replace(
         /\*\*(.*?)\*\*/g,
         '<strong class="font-semibold text-va-ink dark:text-[#ede6dc]">$1</strong>',
       )
 
+      let html: string
       if (processed.startsWith('### ')) {
-        return `<h3 class="font-display text-xl font-semibold mt-4 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(4)}</h3>`
-      }
-      if (processed.startsWith('## ')) {
-        return `<h2 class="font-display text-2xl font-semibold mt-5 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(3)}</h2>`
-      }
-      if (processed.startsWith('# ')) {
-        return `<h1 class="font-display text-3xl font-semibold mt-6 mb-3 text-va-ink dark:text-[#f3eee6]">${processed.slice(2)}</h1>`
-      }
-      if (
+        html = `<h3 class="font-display text-xl font-semibold mt-4 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(4)}</h3>`
+      } else if (processed.startsWith('## ')) {
+        html = `<h2 class="font-display text-2xl font-semibold mt-5 mb-2 text-va-ink dark:text-[#f3eee6]">${processed.slice(3)}</h2>`
+      } else if (processed.startsWith('# ')) {
+        html = `<h1 class="font-display text-3xl font-semibold mt-6 mb-3 text-va-ink dark:text-[#f3eee6]">${processed.slice(2)}</h1>`
+      } else if (
         processed.trim().startsWith('- ') ||
         processed.trim().startsWith('* ')
       ) {
-        return `<li class="ml-6 mb-2 list-disc text-va-ink-soft dark:text-[#d6cec3] leading-relaxed">${processed.trim().slice(2)}</li>`
+        html = `<li class="ml-6 mb-2 list-disc text-va-ink-soft dark:text-[#d6cec3] leading-relaxed">${processed.trim().slice(2)}</li>`
+      } else if (processed.trim() === '') {
+        html = '<div class="h-2"></div>'
+      } else {
+        html = `<p class="mb-3 leading-relaxed text-va-ink-soft dark:text-[#d6cec3]">${processed}</p>`
       }
-      if (processed.trim() === '') {
-        return '<div class="h-2"></div>'
+
+      // Curseur injecté à l'intérieur du dernier bloc de contenu
+      if (i === lastContentIdx && showCursor) {
+        html = html.replace(/<\/(\w+)>\s*$/, `${cursorHtml}</$1>`)
       }
-      return `<p class="mb-3 leading-relaxed text-va-ink-soft dark:text-[#d6cec3]">${processed}</p>`
+
+      return html
     })
     .join('')
 
-  const cursor = showCursor
-    ? '<span class="inline-block w-2 h-4 ml-0.5 bg-va-rust/60 animate-pulse rounded-sm align-middle"></span>'
-    : ''
-
-  return <div dangerouslySetInnerHTML={{ __html: rendered + cursor }} />
+  return <div dangerouslySetInnerHTML={{ __html: rendered }} />
 }
 
 // ── Sous-composant : barre de progression + messages évolutifs ──
@@ -196,7 +205,7 @@ export function SummaryModal({
               {/* Contenu avec animation d'apparition */}
               {hasContent && (
                 <div className="motion-safe:animate-[content-fade-in_350ms_ease-out_both]">
-                  {renderMarkdown(mainSummary || '', isLoading)}
+                  {renderMarkdown(mainSummary || '', isLoading && !insight)}
                 </div>
               )}
 
