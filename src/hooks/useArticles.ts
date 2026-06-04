@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { listArticles } from '../services/articlesService'
-import type { Article, PaginatedArticles } from '../types/article'
+import type { Article, ArticleQueryParams, PaginatedArticles } from '../types/article'
 
 interface UseArticlesState {
   items: Article[]
@@ -20,14 +20,19 @@ export function useArticles() {
 
   const seqRef = useRef(0)
   const cancelledRef = useRef(false)
+  // Garder les derniers params pour que la pagination les préserve
+  const lastParamsRef = useRef<ArticleQueryParams>({})
 
   const reload = useCallback(
-    async (params?: { limit?: number; offset?: number }) => {
+    async (params: ArticleQueryParams = {}) => {
       const runId = ++seqRef.current
+      // Merge avec les params précédents (pagination préserve q, source, etc.)
+      const merged = { ...lastParamsRef.current, ...params }
+      lastParamsRef.current = merged
 
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }))
-        const result: PaginatedArticles = await listArticles(params)
+        const result: PaginatedArticles = await listArticles(merged)
         if (cancelledRef.current) return
         if (runId !== seqRef.current) return
         setState({
