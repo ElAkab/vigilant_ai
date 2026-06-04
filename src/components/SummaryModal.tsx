@@ -73,22 +73,21 @@ export function SummaryModal({
 
   // Timer de chargement progressif
   const loadStartRef = useRef<number>(0)
-  const [loadStage, setLoadStage] = useState<number>(0)
+  const [rawStage, setRawStage] = useState<number>(0)
+  // Stage affiché : 0 si pas en chargement, sinon la valeur brute
+  const loadStage = !isLoading || hasContent ? 0 : rawStage
 
   useEffect(() => {
-    if (!isLoading || hasContent) {
-      setLoadStage(0)
-      return
-    }
+    if (!isLoading || hasContent) return
     loadStartRef.current = Date.now()
+    queueMicrotask(() => setRawStage(0))
 
     const checkStage = () => {
       const elapsed = Date.now() - loadStartRef.current
-      if (elapsed > 80_000) setLoadStage(3)       // >80s : abandon suggéré
-      else if (elapsed > 40_000) setLoadStage(2)   // >40s : modèle lent
-      else if (elapsed > 12_000) setLoadStage(1)   // >12s : réflexion
+      if (elapsed > 80_000) setRawStage(3)
+      else if (elapsed > 40_000) setRawStage(2)
+      else if (elapsed > 12_000) setRawStage(1)
     }
-
     checkStage()
     const id = setInterval(checkStage, 4000)
     return () => clearInterval(id)
