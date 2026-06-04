@@ -15,7 +15,7 @@ export function ArticlesPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [summaryGen, setSummaryGen] = useState(0)
 
-  const { summary, loading: summaryLoading, error: summaryError, generateSummary } =
+  const { summary, loading: summaryLoading, error: summaryError, generateSummary, cached } =
     useArticleSummary()
 
   const pageSize = DEFAULT_PAGE_SIZE
@@ -258,6 +258,7 @@ export function ArticlesPage() {
         summary={summary}
         isLoading={summaryLoading}
         error={summaryError}
+        cached={cached}
       />
     </main>
   )

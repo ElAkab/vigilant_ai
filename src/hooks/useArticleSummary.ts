@@ -7,6 +7,7 @@ type UseArticleSummaryState = {
   summary: string | null
   loading: boolean
   error: string | null
+  cached: boolean
 }
 
 type GenerateSummaryParams = {
@@ -43,6 +44,7 @@ export function useArticleSummary() {
     summary: null,
     loading: false,
     error: null,
+    cached: false,
   })
 
   const requestSeq = useRef(0)
@@ -53,7 +55,7 @@ export function useArticleSummary() {
     requestSeq.current += 1
     abortRef.current?.abort()
     abortRef.current = null
-    setState({ summary: null, loading: false, error: null })
+    setState({ summary: null, loading: false, error: null, cached: false })
   }, [])
 
   const attemptSummarize = useCallback(
@@ -91,12 +93,12 @@ export function useArticleSummary() {
       // Vérifier le cache sessionStorage d'abord
       const cached = getCached(params.article.id)
       if (cached) {
-        setState({ summary: cached, loading: false, error: null })
+        setState({ summary: cached, loading: false, error: null, cached: true })
         inFlightRef.current = null
         return
       }
 
-      setState({ summary: '', loading: true, error: null })
+      setState({ summary: '', loading: true, error: null, cached: false })
 
       let lastError: Error | null = null
 
@@ -113,7 +115,7 @@ export function useArticleSummary() {
           if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
           // Sauvegarder dans le cache
           if (result.summary) setCache(params.article.id, result.summary)
-          setState({ summary: result.summary, loading: false, error: null })
+          setState({ summary: result.summary, loading: false, error: null, cached: false })
           inFlightRef.current = null
           return
         } catch (err) {

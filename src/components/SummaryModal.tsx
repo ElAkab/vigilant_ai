@@ -8,6 +8,7 @@ type SummaryModalProps = {
   summary: string | null
   isLoading: boolean
   error: string | null
+  cached?: boolean
 }
 
 function renderMarkdown(text: string, showCursor = false) {
@@ -57,6 +58,7 @@ export function SummaryModal({
   summary,
   isLoading,
   error,
+  cached = false,
 }: SummaryModalProps) {
   // Split summary into main text and insight
   const parts = summary
@@ -99,6 +101,12 @@ export function SummaryModal({
           <div>
             <p className="font-reading text-[11px] font-semibold uppercase tracking-[0.22em] text-va-ink-muted dark:text-[#a9a29a] mb-2">
               Résumé IA
+              {cached && (
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-va-mist/60 bg-va-mist/20 px-2 py-0.5 text-[9px] font-medium tracking-normal text-va-ink-muted/70 dark:border-white/10 dark:bg-white/5 dark:text-[#8f877c]">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-va-teal/60" />
+                  en cache
+                </span>
+              )}
             </p>
             <h2 className="font-display text-xl font-semibold leading-tight text-va-ink dark:text-[#f3eee6]">
               {article.titre}
@@ -124,9 +132,13 @@ export function SummaryModal({
 
               {hasContent && renderMarkdown(mainSummary || '')}
 
-              {/* Bloc Avis : animation CSS @keyframes native — se déclenche quand la div entre dans le DOM */}
+              {/* Bloc Avis — animation uniquement pour les résumés frais, pas le cache */}
               {insight && (
-                <div className="mt-6 p-5 rounded-xl border border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5 animate-insight-appear">
+                <div className={[
+                  'mt-6 p-5 rounded-xl border',
+                  'border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5',
+                  cached ? '' : 'animate-insight-appear',
+                ].join(' ')}>
                   {renderMarkdown(insight)}
                 </div>
               )}
