@@ -20,11 +20,9 @@ function ArticleCardComponent({
 	const host = safeHostname(article.urlSource);
 
 	return (
-		<article className="group/card relative isolate overflow-hidden rounded-2xl border border-va-mist/80 bg-[linear-gradient(125deg,var(--color-va-paper)_0%,rgb(255_255_255/0.88)_54%,rgb(251_246_236/0.96)_100%)] p-px shadow-[0_1px_0_rgb(255_255_255/0.65)_inset,0_18px_50px_-32px_rgb(28_36_53/0.35)] transition-[transform,box-shadow,border-color] duration-300 ease-out dark:border-white/10 dark:bg-[linear-gradient(140deg,rgb(24_27_37)_0%,rgb(23_26_38/0.95)_52%,rgb(18_21_34/1)_100%)] dark:shadow-[0_1px_0_rgb(255_255_255/0.06)_inset,0_22px_60px_-40px_rgb(0_0_0/0.75)]">
-			<div className="pointer-events-none absolute -left-24 top-16 h-40 w-64 rotate-[-18deg] rounded-full bg-va-rust/12 blur-3xl transition-opacity duration-500 group-hover/card:opacity-90 dark:bg-va-rust-bright/14" />
-			<div className="pointer-events-none absolute -right-10 -top-20 h-48 w-48 rounded-full bg-va-teal/10 blur-2xl dark:bg-va-teal/15" />
+		<article className="group/card relative isolate overflow-hidden rounded-2xl border border-black/[0.04] bg-white/70 p-5 shadow-[0_1px_0_rgb(0_0_0/0.03)_inset,0_8px_24px_-16px_rgb(0_0_0/0.08)] backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-black/[0.08] hover:shadow-[0_1px_0_rgb(0_0_0/0.04)_inset,0_16px_32px_-20px_rgb(0_0_0/0.12)] dark:border-white/[0.06] dark:bg-zinc-900/60 dark:shadow-[0_1px_0_rgb(255_255_255/0.03)_inset,0_8px_24px_-16px_rgb(0_0_0/0.5)] dark:hover:border-white/[0.1] dark:hover:shadow-[0_1px_0_rgb(255_255_255/0.04)_inset,0_16px_32px_-20px_rgb(0_0_0/0.65)]">
 
-			<div className="relative flex h-full flex-col gap-4 rounded-[0.9rem] bg-white/70 p-5 backdrop-blur-[2px] dark:bg-zinc-950/55">
+			<div className="flex h-full flex-col gap-4">
 				{article.imageUrl ? (
 					<div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl border border-va-mist/50 dark:border-white/10">
 						<img

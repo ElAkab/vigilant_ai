@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 
+import { SandboxHeader } from '../components/SandboxHeader'
 import { SelectableArticleCard } from '../components/SelectableArticleCard'
 import { SummaryModal } from '../components/SummaryModal'
 import { useArticles } from '../hooks/useArticles'
@@ -63,42 +64,14 @@ export function ArticlesPage() {
 
   return (
     <main className="min-h-dvh">
-      <header className="relative overflow-hidden border-b border-black/5 dark:border-white/10">
-        <div className="pointer-events-none absolute inset-0 opacity-95">
-          <div className="absolute -left-32 top-0 h-72 w-72 rounded-full bg-va-rust/22 blur-[100px]" />
-          <div className="absolute right-[-120px] top-[-80px] h-[420px] w-[420px] rounded-full bg-va-teal/18 blur-[120px]" />
-          <div className="absolute bottom-[-60px] left-1/3 h-48 w-80 rotate-[-8deg] bg-linear-to-r from-transparent via-black/7 to-transparent dark:via-white/8" />
-        </div>
+      <SandboxHeader totalArticles={total} loading={loading} />
 
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-14 md:flex-row md:items-end md:justify-between md:gap-12 md:pb-16">
-          <div className="max-w-xl space-y-4 md:-translate-y-1">
-            <p className="font-reading text-[11px] font-semibold uppercase tracking-[0.28em] text-va-ink-muted dark:text-[#b7aea3]">
-              Agrégateur · Veille sémantique
-            </p>
-            <h1 className="font-display text-5xl font-semibold leading-[0.98] tracking-[-0.045em] text-va-ink md:text-6xl dark:text-[#f7f0e7]">
-              Vigilant&nbsp;AI
-            </h1>
-            <p className="font-reading text-base leading-relaxed text-va-ink-soft dark:text-[#cbc3b7]">
-              Tableau de bord éditorial pour suivre une veille curatoriale: lis, sélectionne, puis{' '}
-              <span className="font-semibold text-va-ink dark:text-[#f3eee6]">
-                extrais une synthèse
-              </span>{' '}
-              (mock) avant de brancher un modèle réel.
-            </p>
-          </div>
-
-          <div className="grid w-full gap-3 font-reading text-sm md:max-w-xs md:text-right">
-            <div className="rounded-2xl border border-black/10 bg-white/70 p-4 text-va-ink-soft shadow-[0_16px_40px_-32px_rgb(16_21_32/0.65)] backdrop-blur-sm dark:border-white/10 dark:bg-zinc-950/45 dark:text-[#bfb6ab] dark:shadow-[0_20px_50px_-38px_rgb(0_0_0/0.75)]">
-              <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-va-rust dark:text-va-rust-bright">
-                Articles
-              </span>
-              <span className="mt-2 block text-base font-semibold text-va-ink dark:text-[#f3eee6]">
-                {loading ? '…' : total}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      {/* Sous-titre mobile — en dehors du header */}
+      <div className="border-b border-black/[0.04] bg-white/50 backdrop-blur-sm sm:hidden dark:border-white/[0.04] dark:bg-zinc-950/50">
+        <p className="mx-auto max-w-6xl px-4 py-2 text-center font-reading text-[10px] font-medium uppercase tracking-[0.18em] text-va-ink-muted/60 dark:text-[#8f877c]/60">
+          Agrégateur · Veille sémantique
+        </p>
+      </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-12 md:py-14">
         {error ? (
@@ -108,7 +81,8 @@ export function ArticlesPage() {
           >
             <div className="space-y-1">
               <p className="font-semibold">Impossible de charger les sources.</p>
-              <p className="text-red-900/80 dark:text-red-100/85">{error}</p>
+              <p className="text-sm text-red-900/70 dark:text-red-100/70">Merci de patienter, nous réessayons.</p>
+              <p className="text-xs text-red-900/40 dark:text-red-100/40">{error}</p>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -133,16 +107,10 @@ export function ArticlesPage() {
 
         <div className="mx-auto max-w-3xl">
           <section className="space-y-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <div>
-                <h2 className="font-display text-3xl font-semibold tracking-[-0.03em] text-va-ink dark:text-[#f3eee6]">
-                  Fil d&apos;articles
-                </h2>
-                <p className="mt-2 max-w-prose font-reading text-sm text-va-ink-muted dark:text-[#a9a29a]">
-                  Cartes légèrement désaxées et révélées en cascade — privilégie une lecture calmée,
-                  puis ouvre la source dans un nouvel onglet.
-                </p>
-              </div>
+            <div className="text-center sm:text-left">
+              <h2 className="font-display text-2xl font-semibold tracking-[-0.03em] text-va-ink dark:text-[#f3eee6] sm:text-3xl">
+                Fil d&apos;articles
+              </h2>
             </div>
 
             <div className="flex flex-col gap-5 md:gap-6">
@@ -151,23 +119,18 @@ export function ArticlesPage() {
                   Chargement de la sélection curatoriale…
                 </div>
               ) : items.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-va-mist/90 bg-white/55 p-10 text-center font-reading text-sm text-va-ink-muted dark:border-white/10 dark:bg-zinc-950/30 dark:text-[#a39a91]">
-                  <p className="text-base font-semibold text-va-ink dark:text-[#f3eee6]">
-                    Aucun article à afficher pour le moment.
+                <div className="rounded-2xl border border-dashed border-black/[0.06] bg-white/60 p-10 text-center backdrop-blur-sm dark:border-white/[0.06] dark:bg-zinc-900/50">
+                  <p className="font-display text-lg font-semibold text-va-ink dark:text-[#f3eee6]">
+                    Aucun article pour le moment.
                   </p>
-                  <p className="mt-2 leading-relaxed">
-                    Si tu viens de brancher un flux RSS, il peut être temporairement vide ou bloqué.
-                    Tu peux aussi ajouter/retirer des sources dans{' '}
-                    <code className="font-mono">server/config/sources.ts</code>.
+                  <p className="mt-2 text-xs text-va-ink-muted/70 dark:text-[#8f877c]/70">
+                    Les développeurs peuvent configurer leurs flux dans{' '}
+                    <code className="font-mono text-va-ink-muted dark:text-[#b7aea3]">
+                      server/config/sources.ts
+                    </code>
+                    .
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => reload({ limit: pageSize, offset: 0 })}
-                      className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
-                    >
-                      Recharger
-                    </button>
                     <a
                       href="https://hnrss.org/"
                       target="_blank"
