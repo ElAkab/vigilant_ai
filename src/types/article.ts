@@ -1,3 +1,5 @@
+export type Categorie = 'Tech' | 'Géopolitique' | 'Général'
+
 export type Article = {
   id: string
   titre: string
@@ -6,6 +8,16 @@ export type Article = {
   urlSource: string
   imageUrl?: string
   sourceLabel?: string
+  categorie?: Categorie
+}
+
+export type ArticleQueryParams = {
+  limit?: number
+  offset?: number
+  q?: string
+  source?: string
+  categorie?: Categorie
+  sort?: 'recent' | 'ancien'
 }
 
 export interface PaginatedArticles {

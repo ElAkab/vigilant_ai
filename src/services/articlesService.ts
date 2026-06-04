@@ -1,17 +1,19 @@
-import type { PaginatedArticles } from '../types/article'
-
-export interface ListArticlesParams {
-  limit?: number   // défaut 10
-  offset?: number  // défaut 0
-}
+import type { ArticleQueryParams, PaginatedArticles } from '../types/article'
 
 export async function listArticles(
-  params: ListArticlesParams = {},
+  params: ArticleQueryParams = {},
 ): Promise<PaginatedArticles> {
-  const { limit = 10, offset = 0 } = params
-  const url = `/api/articles?limit=${limit}&offset=${offset}`
+  const url = new URL('/api/articles', window.location.origin)
+  const { limit = 10, offset = 0, q, source, categorie, sort } = params
 
-  const res = await fetch(url, {
+  url.searchParams.set('limit', String(limit))
+  url.searchParams.set('offset', String(offset))
+  if (q) url.searchParams.set('q', q)
+  if (source) url.searchParams.set('source', source)
+  if (categorie) url.searchParams.set('categorie', categorie)
+  if (sort) url.searchParams.set('sort', sort)
+
+  const res = await fetch(url.toString(), {
     headers: { accept: 'application/json' },
   })
 
