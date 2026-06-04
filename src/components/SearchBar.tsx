@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Categorie } from '../types/article'
 
 interface SearchBarProps {
@@ -13,7 +14,9 @@ interface SearchBarProps {
   loading: boolean
 }
 
-const SOURCES = [
+type SourceOption = { value: string; label: string }
+
+const SOURCES: SourceOption[] = [
   { value: '', label: 'Toutes les sources' },
   { value: 'OpenAI', label: 'OpenAI' },
   { value: 'Cloudflare', label: 'Cloudflare' },
@@ -21,11 +24,16 @@ const SOURCES = [
   { value: 'Frandroid', label: 'Frandroid' },
 ]
 
+// Mapping catégorie → sources compatibles
+const CATEGORY_SOURCES: Partial<Record<Categorie, string[]>> = {
+  Tech: ['OpenAI', 'Cloudflare', 'Frandroid'],
+  Géopolitique: ['Le Monde'],
+}
+
 const CATEGORIES: Array<{ value: Categorie | ''; label: string }> = [
   { value: '', label: 'Toutes les catégories' },
   { value: 'Tech', label: 'Tech' },
   { value: 'Géopolitique', label: 'Géopolitique' },
-  { value: 'Général', label: 'Général' },
 ]
 
 const selectBase =
@@ -43,6 +51,33 @@ export function SearchBar({
   resultCount,
   loading,
 }: SearchBarProps) {
+  // Sources disponibles selon la catégorie sélectionnée
+  const availableSources = useMemo<SourceOption[]>(() => {
+    if (!categorie) return SOURCES
+    const allowed = CATEGORY_SOURCES[categorie]
+    if (!allowed) return SOURCES
+    return SOURCES.filter((s) => s.value === '' || allowed.includes(s.value))
+  }, [categorie])
+
+  // Réinitialiser la source si elle devient incompatible
+  const sourceRef = useRef(source)
+  useEffect(() => {
+    sourceRef.current = source
+  })
+  const onCategorieChangeSafe = useCallback(
+    (cat: Categorie | '') => {
+      onCategorieChange(cat)
+      // Si la source actuelle n'est plus compatible, réinitialiser
+      if (cat && sourceRef.current) {
+        const allowed = CATEGORY_SOURCES[cat]
+        if (allowed && !allowed.includes(sourceRef.current)) {
+          onSourceChange('')
+        }
+      }
+    },
+    [onCategorieChange, onSourceChange],
+  )
+
   return (
     <div className="space-y-4">
       {/* Barre de recherche */}
@@ -73,36 +108,11 @@ export function SearchBar({
 
       {/* Filtres + Tri — responsive */}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
-        {/* Dropdown Source */}
-        <div className="relative">
-          <select
-            value={source}
-            onChange={(e) => onSourceChange(e.target.value)}
-            className={`${selectBase} w-full sm:w-auto`}
-          >
-            {SOURCES.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <svg
-            className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-va-ink-muted/50"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
-          </svg>
-        </div>
-
-        {/* Dropdown Catégorie */}
+        {/* Dropdown Catégorie (placé avant Source car il pilote le filtrage) */}
         <div className="relative">
           <select
             value={categorie}
-            onChange={(e) => onCategorieChange(e.target.value as Categorie | '')}
+            onChange={(e) => onCategorieChangeSafe(e.target.value as Categorie | '')}
             className={`${selectBase} w-full sm:w-auto`}
           >
             {CATEGORIES.map((c) => (
@@ -123,8 +133,33 @@ export function SearchBar({
           </svg>
         </div>
 
-        {/* Toggle Tri */}
-        <div className="col-span-2 flex rounded-xl border border-va-mist bg-white/90 p-0.5 dark:border-white/15 dark:bg-zinc-950/40 sm:col-span-1">
+        {/* Dropdown Source — filtré dynamiquement */}
+        <div className="relative">
+          <select
+            value={source}
+            onChange={(e) => onSourceChange(e.target.value)}
+            className={`${selectBase} w-full sm:w-auto`}
+          >
+            {availableSources.map((s) => (
+              <option key={s.value} value={s.value}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-va-ink-muted/50"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+          </svg>
+        </div>
+
+        {/* Toggle Tri — aligné avec les selects */}
+        <div className="col-span-2 flex rounded-xl border border-va-mist bg-white/90 py-0.5 dark:border-white/15 dark:bg-zinc-950/40 sm:col-span-1">
           <button
             type="button"
             onClick={() => onSortChange('recent')}
