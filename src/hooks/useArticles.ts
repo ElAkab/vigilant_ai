@@ -26,8 +26,15 @@ export function useArticles() {
   const reload = useCallback(
     async (params: ArticleQueryParams = {}) => {
       const runId = ++seqRef.current
-      // Merge avec les params précédents (pagination préserve q, source, etc.)
-      const merged = { ...lastParamsRef.current, ...params }
+      // Merge safe : ne pas écraser les params existants avec undefined
+      // Pagination → passe juste {limit, offset} → hérite q/source/categorie/sort
+      const merged = { ...lastParamsRef.current }
+      if (params.limit !== undefined) merged.limit = params.limit
+      if (params.offset !== undefined) merged.offset = params.offset
+      if (params.q !== undefined) merged.q = params.q
+      if (params.source !== undefined) merged.source = params.source
+      if (params.categorie !== undefined) merged.categorie = params.categorie
+      if (params.sort !== undefined) merged.sort = params.sort
       lastParamsRef.current = merged
 
       try {

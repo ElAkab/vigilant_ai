@@ -117,7 +117,7 @@ export function ArticlesPage() {
     [triggerReload],
   )
 
-  // Changement de page → préserve les filtres
+  // Changement de page → les filtres sont hérités de lastParamsRef
   const goToPage = useCallback(
     (page: number) => {
       const currentFilter = filterRef.current
@@ -127,14 +127,7 @@ export function ArticlesPage() {
       writeFilterToURL(next)
       setFilter(next)
       const offset = (clamped - 1) * pageSize
-      reload({
-        limit: pageSize,
-        offset,
-        q: currentFilter.q || undefined,
-        source: currentFilter.source || undefined,
-        categorie: currentFilter.categorie || undefined,
-        sort: currentFilter.sort,
-      })
+      reload({ limit: pageSize, offset })
     },
     [total, pageSize, reload],
   )
