@@ -173,8 +173,8 @@ export function ArticlesPage() {
     <main className="min-h-dvh">
       <SandboxHeader totalArticles={total} loading={loading} />
 
-      {/* Sous-titre mobile — en dehors du header */}
-      <div className="border-b border-black/[0.04] bg-white/50 backdrop-blur-sm sm:hidden dark:border-white/[0.04] dark:bg-zinc-950/50">
+      {/* Sous-titre — toutes tailles d'écran */}
+      <div className="border-b border-black/[0.04] bg-white/50 backdrop-blur-sm dark:border-white/[0.04] dark:bg-zinc-950/50">
         <p className="mx-auto max-w-6xl px-4 py-2 text-center font-reading text-[10px] font-medium uppercase tracking-[0.18em] text-va-ink-muted/60 dark:text-[#8f877c]/60">
           Agrégateur · Veille sémantique
         </p>
