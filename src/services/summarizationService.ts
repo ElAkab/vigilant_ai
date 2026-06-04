@@ -12,6 +12,7 @@ export type SummarizeArticleResult = {
 export type SummarizeArticleStreamParams = SummarizeArticleParams & {
   signal?: AbortSignal
   onDelta: (delta: string) => void
+  timeoutMs?: number
 }
 
 export async function summarizeArticle(
@@ -48,7 +49,7 @@ export async function summarizeArticle(
 export async function summarizeArticleStream(
   params: SummarizeArticleStreamParams,
 ): Promise<SummarizeArticleResult> {
-  const { article, maxLength = 280, onDelta, signal } = params
+  const { article, maxLength = 280, onDelta, signal, timeoutMs = 90_000 } = params
 
   const res = await fetch('/api/summarize/stream', {
     method: 'POST',
@@ -81,6 +82,7 @@ export async function summarizeArticleStream(
 
   let buffer = ''
   let finalSummary: string | null = null
+  let lastChunkTime = Date.now()
 
   const parseEvent = (raw: string): { event: string; data: string } | null => {
     const lines = raw.split('\n')
@@ -95,6 +97,12 @@ export async function summarizeArticleStream(
   }
 
   while (true) {
+    // Timeout de lecture : si aucun chunk depuis trop longtemps, on abandonne
+    if (Date.now() - lastChunkTime > timeoutMs) {
+      reader.cancel()
+      throw new Error('Le résumé prend trop de temps. Réessaie dans quelques instants.')
+    }
+
     const { value, done } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
@@ -108,7 +116,10 @@ export async function summarizeArticleStream(
 
       if (parsed.event === 'chunk') {
         const payload = JSON.parse(parsed.data) as { delta?: string }
-        if (payload.delta) onDelta(payload.delta)
+        if (payload.delta) {
+          lastChunkTime = Date.now()
+          onDelta(payload.delta)
+        }
       } else if (parsed.event === 'done') {
         const payload = JSON.parse(parsed.data) as { summary?: string }
         finalSummary = payload.summary?.trim() || ''

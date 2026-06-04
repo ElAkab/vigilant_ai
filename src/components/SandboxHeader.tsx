@@ -40,7 +40,7 @@ function SandboxHeaderComponent({
           <h1 className="font-display text-lg font-semibold tracking-[-0.02em] text-va-ink sm:text-xl dark:text-[#f3eee6]">
             Vigilant AI
           </h1>
-          <span className="hidden font-reading text-[10px] font-medium uppercase tracking-[0.2em] text-va-ink-muted/70 sm:inline dark:text-[#8f877c]/70">
+          <span className="hidden font-reading text-[10px] font-medium uppercase tracking-[0.2em] text-va-ink-muted/60 sm:inline dark:text-[#8f877c]/60">
             Agrégateur · Veille sémantique
           </span>
         </div>
@@ -57,7 +57,14 @@ function SandboxHeaderComponent({
             "transition-colors duration-300",
           ].join(" ")}
         >
-          <span className="inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-va-rust/80 dark:bg-va-rust-bright" />
+          <span
+            className={[
+              "inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full",
+              totalArticles > 1
+                ? "bg-green-500/80 dark:bg-green-400/80"
+                : "bg-va-rust/80 dark:bg-va-rust-bright",
+            ].join(" ")}
+          />
           <span className="font-reading text-[11px] tabular-nums text-va-ink-muted dark:text-[#a9a29a]">
             {loading ? "…" : totalArticles.toLocaleString("fr-FR")}
           </span>

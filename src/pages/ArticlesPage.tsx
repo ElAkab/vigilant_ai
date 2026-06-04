@@ -73,7 +73,7 @@ export function ArticlesPage() {
         </p>
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 py-12 md:py-14">
+      <div className="relative mx-auto w-full max-w-6xl px-4 pt-8 pb-12 md:pt-12 md:pb-14">
         {error ? (
           <div
             role="alert"

@@ -235,9 +235,9 @@ export async function handleSummarizeStream(req: Request): Promise<Response> {
 				console.error(
 					`[Summarize] ${body.article.id} (stream) ❌ → ${message}`,
 				);
-				send("error", { message });
+				try { send("error", { message }); } catch { /* client déjà déconnecté */ }
 			} finally {
-				controller.close();
+				try { controller.close(); } catch { /* déjà fermé */ }
 			}
 		},
 	});

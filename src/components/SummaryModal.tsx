@@ -1,5 +1,5 @@
 import type { Article } from '../types/article'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -71,6 +71,29 @@ export function SummaryModal({
 
   const hasContent = summary !== null && summary.length > 0
 
+  // Timer de chargement progressif
+  const loadStartRef = useRef<number>(0)
+  const [loadStage, setLoadStage] = useState<number>(0)
+
+  useEffect(() => {
+    if (!isLoading || hasContent) {
+      setLoadStage(0)
+      return
+    }
+    loadStartRef.current = Date.now()
+
+    const checkStage = () => {
+      const elapsed = Date.now() - loadStartRef.current
+      if (elapsed > 80_000) setLoadStage(3)       // >80s : abandon suggéré
+      else if (elapsed > 40_000) setLoadStage(2)   // >40s : modèle lent
+      else if (elapsed > 12_000) setLoadStage(1)   // >12s : réflexion
+    }
+
+    checkStage()
+    const id = setInterval(checkStage, 4000)
+    return () => clearInterval(id)
+  }, [isLoading, hasContent])
+
   // Fermer la modale avec Échap
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -122,11 +145,30 @@ export function SummaryModal({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Indicateur de chargement : simple, fiable, 0 lib externe */}
+              {/* Indicateur de chargement progressif */}
               {isLoading && !hasContent && (
-                <div className="flex items-center justify-center gap-3 py-12">
-                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-va-rust/50 animate-pulse" />
-                  <span className="text-sm text-va-ink-muted/60">Rédaction du résumé…</span>
+                <div className="flex flex-col items-center justify-center gap-3 py-12">
+                  {/* Barre de progression subtile */}
+                  <div className="h-1 w-48 overflow-hidden rounded-full bg-va-mist/30 dark:bg-white/5">
+                    <div
+                      className={[
+                        "h-full rounded-full transition-all duration-1000",
+                        loadStage === 0
+                          ? "w-1/4 bg-va-rust/40"
+                          : loadStage === 1
+                            ? "w-2/4 bg-va-rust/50"
+                            : loadStage === 2
+                              ? "w-3/4 bg-va-rust/60"
+                              : "w-[90%] bg-red-400/50",
+                      ].join(" ")}
+                    />
+                  </div>
+                  <span className="text-sm text-va-ink-muted/50 dark:text-[#8f877c]/50">
+                    {loadStage === 0 && "Rédaction du résumé…"}
+                    {loadStage === 1 && "Le modèle IA réfléchit…"}
+                    {loadStage === 2 && "Modèle gratuit un peu lent, patience…"}
+                    {loadStage === 3 && "Le serveur tarde — n'hésite pas à réessayer"}
+                  </span>
                 </div>
               )}
 
