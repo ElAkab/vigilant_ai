@@ -224,7 +224,6 @@ export function ArticlesPage() {
               onCategorieChange={(c) => applyFilter({ categorie: c })}
               sort={filter.sort}
               onSortChange={(s) => applyFilter({ sort: s })}
-              resultCount={total}
               loading={loading}
             />
           </div>
@@ -246,7 +245,7 @@ export function ArticlesPage() {
                   <img
                     src="/vigilan-ai.png"
                     alt="Vigilant AI"
-                    className="mb-6 h-14 w-14 rounded-2xl shadow-[0_12px_30px_-14px_rgb(16_21_32/0.35)] ring-1 ring-black/[0.06] dark:ring-white/[0.08]"
+                    className="mb-6 h-14 w-14 rounded-full object-cover shadow-[0_12px_30px_-14px_rgb(16_21_32/0.35)] ring-1 ring-black/[0.06] dark:ring-white/[0.08]"
                   />
                   <p className="font-display text-xl font-semibold tracking-[-0.02em] text-va-ink dark:text-[#f3eee6]">
                     {filter.q || filter.source || filter.categorie

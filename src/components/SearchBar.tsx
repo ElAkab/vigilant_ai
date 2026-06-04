@@ -10,13 +10,12 @@ interface SearchBarProps {
   onCategorieChange: (cat: Categorie | '') => void
   sort: 'recent' | 'ancien'
   onSortChange: (sort: 'recent' | 'ancien') => void
-  resultCount: number
   loading: boolean
 }
 
 type SourceOption = { value: string; label: string }
 
-const SOURCES: SourceOption[] = [
+const ALL_SOURCES: SourceOption[] = [
   { value: '', label: 'Toutes les sources' },
   { value: 'OpenAI', label: 'OpenAI' },
   { value: 'Cloudflare', label: 'Cloudflare' },
@@ -30,7 +29,16 @@ const CATEGORY_SOURCES: Partial<Record<Categorie, string[]>> = {
   Géopolitique: ['Le Monde'],
 }
 
-const CATEGORIES: Array<{ value: Categorie | ''; label: string }> = [
+// Mapping inverse : source → catégories compatibles
+const SOURCE_CATEGORIES: Record<string, Categorie[]> = {}
+for (const [cat, sources] of Object.entries(CATEGORY_SOURCES)) {
+  for (const src of sources!) {
+    if (!SOURCE_CATEGORIES[src]) SOURCE_CATEGORIES[src] = []
+    SOURCE_CATEGORIES[src].push(cat as Categorie)
+  }
+}
+
+const ALL_CATEGORIES: Array<{ value: Categorie | ''; label: string }> = [
   { value: '', label: 'Toutes les catégories' },
   { value: 'Tech', label: 'Tech' },
   { value: 'Géopolitique', label: 'Géopolitique' },
@@ -48,26 +56,36 @@ export function SearchBar({
   onCategorieChange,
   sort,
   onSortChange,
-  resultCount,
   loading,
 }: SearchBarProps) {
   // Sources disponibles selon la catégorie sélectionnée
   const availableSources = useMemo<SourceOption[]>(() => {
-    if (!categorie) return SOURCES
+    if (!categorie) return ALL_SOURCES
     const allowed = CATEGORY_SOURCES[categorie]
-    if (!allowed) return SOURCES
-    return SOURCES.filter((s) => s.value === '' || allowed.includes(s.value))
+    if (!allowed) return ALL_SOURCES
+    return ALL_SOURCES.filter((s) => s.value === '' || allowed.includes(s.value))
   }, [categorie])
 
-  // Réinitialiser la source si elle devient incompatible
+  // Catégories disponibles selon la source sélectionnée
+  const availableCategories = useMemo<Array<{ value: Categorie | ''; label: string }>>(() => {
+    if (!source) return ALL_CATEGORIES
+    const allowed = SOURCE_CATEGORIES[source]
+    if (!allowed) return ALL_CATEGORIES
+    return ALL_CATEGORIES.filter((c) => c.value === '' || allowed.includes(c.value as Categorie))
+  }, [source])
+
+  // Ref pour lire les valeurs à jour dans les callbacks
   const sourceRef = useRef(source)
+  const categorieRef = useRef(categorie)
   useEffect(() => {
     sourceRef.current = source
+    categorieRef.current = categorie
   })
+
+  // Changer de catégorie → réinitialiser la source si incompatible
   const onCategorieChangeSafe = useCallback(
     (cat: Categorie | '') => {
       onCategorieChange(cat)
-      // Si la source actuelle n'est plus compatible, réinitialiser
       if (cat && sourceRef.current) {
         const allowed = CATEGORY_SOURCES[cat]
         if (allowed && !allowed.includes(sourceRef.current)) {
@@ -76,6 +94,20 @@ export function SearchBar({
       }
     },
     [onCategorieChange, onSourceChange],
+  )
+
+  // Changer de source → réinitialiser la catégorie si incompatible
+  const onSourceChangeSafe = useCallback(
+    (src: string) => {
+      onSourceChange(src)
+      if (src && categorieRef.current) {
+        const allowed = SOURCE_CATEGORIES[src]
+        if (allowed && !allowed.includes(categorieRef.current)) {
+          onCategorieChange('')
+        }
+      }
+    },
+    [onSourceChange, onCategorieChange],
   )
 
   return (
@@ -108,14 +140,14 @@ export function SearchBar({
 
       {/* Filtres + Tri — responsive */}
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-3">
-        {/* Dropdown Catégorie (placé avant Source car il pilote le filtrage) */}
+        {/* Dropdown Catégorie */}
         <div className="relative">
           <select
             value={categorie}
             onChange={(e) => onCategorieChangeSafe(e.target.value as Categorie | '')}
             className={`${selectBase} w-full sm:w-auto`}
           >
-            {CATEGORIES.map((c) => (
+            {availableCategories.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
               </option>
@@ -137,7 +169,7 @@ export function SearchBar({
         <div className="relative">
           <select
             value={source}
-            onChange={(e) => onSourceChange(e.target.value)}
+            onChange={(e) => onSourceChangeSafe(e.target.value)}
             className={`${selectBase} w-full sm:w-auto`}
           >
             {availableSources.map((s) => (
@@ -158,7 +190,7 @@ export function SearchBar({
           </svg>
         </div>
 
-        {/* Toggle Tri — aligné avec les selects */}
+        {/* Toggle Tri */}
         <div className="col-span-2 flex rounded-xl border border-va-mist bg-white/90 py-0.5 dark:border-white/15 dark:bg-zinc-950/40 sm:col-span-1">
           <button
             type="button"
@@ -183,11 +215,6 @@ export function SearchBar({
             Anciens
           </button>
         </div>
-
-        {/* Compteur de résultats */}
-        <span className="col-span-2 mt-0.5 text-center font-reading text-xs text-va-ink-muted/60 sm:col-span-1 sm:ml-auto sm:mt-0 sm:text-left dark:text-[#8f877c]/60">
-          {resultCount} article{resultCount !== 1 ? 's' : ''}
-        </span>
       </div>
     </div>
   )
