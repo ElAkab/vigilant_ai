@@ -17,16 +17,23 @@ type SourceOption = { value: string; label: string }
 
 const ALL_SOURCES: SourceOption[] = [
   { value: '', label: 'Toutes les sources' },
-  { value: 'OpenAI', label: 'OpenAI' },
+  { value: 'OpenAI (blog)', label: 'OpenAI' },
   { value: 'Cloudflare', label: 'Cloudflare' },
-  { value: 'Le Monde', label: 'Le Monde' },
+  { value: 'The Verge', label: 'The Verge' },
+  { value: 'Ars Technica', label: 'Ars Technica' },
   { value: 'Frandroid', label: 'Frandroid' },
+  { value: 'Le Monde', label: 'Le Monde' },
+  { value: 'BBC World', label: 'BBC World' },
+  { value: 'France 24', label: 'France 24' },
+  { value: 'Eurogamer', label: 'Eurogamer' },
+  { value: 'Gamekult', label: 'Gamekult' },
 ]
 
 // Mapping catégorie → sources compatibles
 const CATEGORY_SOURCES: Partial<Record<Categorie, string[]>> = {
-  Tech: ['OpenAI', 'Cloudflare', 'Frandroid'],
-  Géopolitique: ['Le Monde'],
+  Tech: ['OpenAI (blog)', 'Cloudflare', 'The Verge', 'Ars Technica', 'Frandroid'],
+  Géopolitique: ['Le Monde', 'BBC World', 'France 24'],
+  'Jeux vidéo': ['Eurogamer', 'Gamekult'],
 }
 
 // Mapping inverse : source → catégories compatibles
@@ -42,6 +49,7 @@ const ALL_CATEGORIES: Array<{ value: Categorie | ''; label: string }> = [
   { value: '', label: 'Toutes les catégories' },
   { value: 'Tech', label: 'Tech' },
   { value: 'Géopolitique', label: 'Géopolitique' },
+  { value: 'Jeux vidéo', label: 'Jeux vidéo' },
 ]
 
 const selectBase =

@@ -5,6 +5,8 @@ import { memo } from "react";
 type SandboxHeaderProps = {
 	totalArticles?: number;
 	loading?: boolean;
+	newCount?: number;
+	onBadgeClick?: () => void;
 };
 
 // ─── Composant ────────────────────────────────────────────────────────
@@ -12,6 +14,8 @@ type SandboxHeaderProps = {
 function SandboxHeaderComponent({
 	totalArticles = 0,
 	loading = false,
+	newCount = 0,
+	onBadgeClick,
 }: SandboxHeaderProps) {
 	return (
 		<header
@@ -46,6 +50,29 @@ function SandboxHeaderComponent({
 				</div>
 
 				<div className="flex-1" />
+
+				{/* ── Badge nouveaux articles ── */}
+				{newCount > 0 && (
+					<button
+						type="button"
+						onClick={onBadgeClick}
+						className={[
+							"flex flex-shrink-0 items-center gap-1.5",
+							"rounded-full px-2.5 py-1",
+							"bg-va-rust/12 border border-va-rust/20",
+							"dark:bg-va-rust/15 dark:border-va-rust/25",
+							"font-reading text-[10px] font-semibold tabular-nums",
+							"text-va-rust dark:text-va-rust-bright",
+							"animate-[badge-pop-in_400ms_ease-out]",
+							"transition hover:bg-va-rust/20 dark:hover:bg-va-rust/25",
+							"cursor-pointer",
+						].join(" ")}
+						title={`${newCount} nouvel article${newCount > 1 ? "les" : ""} — cliquer pour ignorer`}
+					>
+						<span className="inline-block h-1.5 w-1.5 rounded-full bg-va-rust dark:bg-va-rust-bright" />
+						{newCount}
+					</button>
+				)}
 
 				{/* ── Stats pill ── */}
 				<div
