@@ -119,6 +119,7 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
         urlSource,
         imageUrl,
         sourceLabel: source.label,
+        categorie: source.categorie,
       } satisfies Article
     })
     .filter((x): x is Article => Boolean(x))

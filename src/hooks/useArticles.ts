@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { listArticles } from '../services/articlesService'
-import type { Article, PaginatedArticles } from '../types/article'
+import type { Article, ArticleQueryParams, PaginatedArticles } from '../types/article'
 
 interface UseArticlesState {
   items: Article[]
@@ -20,14 +20,26 @@ export function useArticles() {
 
   const seqRef = useRef(0)
   const cancelledRef = useRef(false)
+  // Garder les derniers params pour que la pagination les préserve
+  const lastParamsRef = useRef<ArticleQueryParams>({})
 
   const reload = useCallback(
-    async (params?: { limit?: number; offset?: number }) => {
+    async (params: ArticleQueryParams = {}) => {
       const runId = ++seqRef.current
+      // Merge safe : ne pas écraser les params existants avec undefined
+      // Pagination → passe juste {limit, offset} → hérite q/source/categorie/sort
+      const merged = { ...lastParamsRef.current }
+      if (params.limit !== undefined) merged.limit = params.limit
+      if (params.offset !== undefined) merged.offset = params.offset
+      if (params.q !== undefined) merged.q = params.q
+      if (params.source !== undefined) merged.source = params.source
+      if (params.categorie !== undefined) merged.categorie = params.categorie
+      if (params.sort !== undefined) merged.sort = params.sort
+      lastParamsRef.current = merged
 
       try {
         setState((prev) => ({ ...prev, loading: true, error: null }))
-        const result: PaginatedArticles = await listArticles(params)
+        const result: PaginatedArticles = await listArticles(merged)
         if (cancelledRef.current) return
         if (runId !== seqRef.current) return
         setState({

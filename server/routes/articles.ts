@@ -1,4 +1,5 @@
 import type { Article } from '../../src/types/article'
+import type { Categorie } from '../../src/types/article'
 import { RSS_SOURCES } from '../config/sources'
 import { TTLCache } from '../lib/cache'
 import { HttpError, json } from '../lib/http'
@@ -7,18 +8,35 @@ import { checkRateLimit } from '../lib/rateLimit'
 
 const perSourceCache = new TTLCache<string, Article[]>(10 * 60_000)
 
-function dedupeAndSort(items: Article[]): Article[] {
+function dedupeAndSort(items: Article[], sort: 'recent' | 'ancien'): Article[] {
   const map = new Map<string, Article>()
   for (const item of items) {
-    // Clé = id (hash SHA1 unique) — urlSource peut écraser des articles légitimes
     if (!map.has(item.id)) {
       map.set(item.id, item)
     }
   }
 
   const deduped = [...map.values()]
-  deduped.sort((a, b) => (a.datePublication < b.datePublication ? 1 : a.datePublication > b.datePublication ? -1 : 0))
+  const dir = sort === 'recent' ? -1 : 1
+  deduped.sort((a, b) => {
+    if (a.datePublication < b.datePublication) return dir
+    if (a.datePublication > b.datePublication) return -dir
+    return 0
+  })
   return deduped
+}
+
+function matchQuery(article: Article, q: string): boolean {
+  const query = q.toLowerCase()
+  return (
+    article.titre.toLowerCase().includes(query) ||
+    article.resume.toLowerCase().includes(query)
+  )
+}
+
+function matchSource(article: Article, source: string): boolean {
+  const label = (article.sourceLabel ?? '').toLowerCase()
+  return label.includes(source.toLowerCase())
 }
 
 export async function handleListArticles(req: Request): Promise<Response> {
@@ -32,11 +50,15 @@ export async function handleListArticles(req: Request): Promise<Response> {
   const url = new URL(req.url)
   const limit = Math.max(1, Math.min(200, Number(url.searchParams.get('limit') || 10)))
   const offset = Math.max(0, Number(url.searchParams.get('offset') || 0))
+  const q = url.searchParams.get('q')?.trim() || undefined
+  const source = url.searchParams.get('source')?.trim() || undefined
+  const categorie = (url.searchParams.get('categorie')?.trim() || undefined) as Categorie | undefined
+  const sort = (url.searchParams.get('sort') === 'ancien' ? 'ancien' : 'recent') as 'recent' | 'ancien'
 
   const settled = await Promise.allSettled(
-    RSS_SOURCES.map(async (source) => {
-      const items = await perSourceCache.getOrSet(`rss:${source.id}`, async () => fetchRssArticles(source))
-      return { sourceId: source.id, sourceLabel: source.label, items }
+    RSS_SOURCES.map(async (src) => {
+      const items = await perSourceCache.getOrSet(`rss:${src.id}`, async () => fetchRssArticles(src))
+      return { sourceId: src.id, sourceLabel: src.label, items }
     }),
   )
 
@@ -53,9 +75,33 @@ export async function handleListArticles(req: Request): Promise<Response> {
     errors.push({ sourceId: 'unknown', message })
   }
 
-  const merged = dedupeAndSort(results.flat())
+  let merged = dedupeAndSort(results.flat(), sort)
+
+  // Appliquer les filtres
+  if (q) {
+    merged = merged.filter((article) => matchQuery(article, q))
+  }
+  if (source) {
+    merged = merged.filter((article) => matchSource(article, source))
+  }
+  if (categorie) {
+    merged = merged.filter((article) => article.categorie === categorie)
+  }
+
   const total = merged.length
-  console.log(`[Articles API] Fusionné ${total} articles. Erreurs de sources:`, errors);
+  console.log(`[Articles API] Fusionné ${merged.length} articles après filtres. Erreurs de sources:`, errors)
+
+  if (total === 0 && settled.some((r) => r.status === 'fulfilled')) {
+    // Les sources sont OK mais les filtres ne donnent rien — page vide, pas d'erreur
+    return json({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: limit,
+      totalPages: 0,
+      meta: { sourceCount: RSS_SOURCES.length, errors },
+    })
+  }
 
   if (total === 0) {
     throw new HttpError(502, 'RSS_UNAVAILABLE', errors[0]?.message ?? 'Aucune source RSS disponible')
@@ -73,4 +119,3 @@ export async function handleListArticles(req: Request): Promise<Response> {
     meta: { sourceCount: RSS_SOURCES.length, errors },
   })
 }
-
