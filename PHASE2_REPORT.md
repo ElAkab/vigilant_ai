@@ -25,7 +25,7 @@
 
 ---
 
-## 🔄 Phase 2 — VIG-005 · Logo mascotte + UI sobre (EN COURS)
+## 🔄 Phase 2 — VIG-005 · Logo mascotte + UI sobre (TERMINÉE ✅)
 
 ### Terminé
 
@@ -39,12 +39,13 @@
 | « Fil d'articles » centré mobile, description supprimée | ✅ |
 | Point compteur : vert si >1 article, rouille sinon | ✅ |
 | Message patientez dans la modale d'erreur | ✅ |
+| État vide / landing page avec logo centré | ✅ |
+| Nettoyage `index.css` (radial-gradients supprimés) | ✅ |
+| Bouton « Exemple de flux RSS » réduit | ✅ |
 
 ### Reste à faire
 
-- État vide / landing page avec logo centré
-- Nettoyer `index.css` (radial-gradients body, `@keyframes va-card-in`)
-- Réduire bouton « Exemple de flux RSS » dans l'état vide
+*Aucun — VIG-005 est terminée.*
 
 ---
 
