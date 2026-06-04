@@ -7,11 +7,13 @@ export type SummarizeArticleParams = {
 
 export type SummarizeArticleResult = {
   summary: string
+  cached?: boolean
 }
 
 export type SummarizeArticleStreamParams = SummarizeArticleParams & {
   signal?: AbortSignal
   onDelta: (delta: string) => void
+  onMeta?: () => void
   timeoutMs?: number
 }
 
@@ -49,7 +51,7 @@ export async function summarizeArticle(
 export async function summarizeArticleStream(
   params: SummarizeArticleStreamParams,
 ): Promise<SummarizeArticleResult> {
-  const { article, maxLength = 280, onDelta, signal, timeoutMs = 90_000 } = params
+  const { article, maxLength = 280, onDelta, onMeta, signal, timeoutMs = 90_000 } = params
 
   const res = await fetch('/api/summarize/stream', {
     method: 'POST',
@@ -82,6 +84,7 @@ export async function summarizeArticleStream(
 
   let buffer = ''
   let finalSummary: string | null = null
+  let cachedFromServer: boolean | undefined
   let lastChunkTime = Date.now()
 
   const parseEvent = (raw: string): { event: string; data: string } | null => {
@@ -120,9 +123,12 @@ export async function summarizeArticleStream(
           lastChunkTime = Date.now()
           onDelta(payload.delta)
         }
+      } else if (parsed.event === 'meta') {
+        onMeta?.()
       } else if (parsed.event === 'done') {
-        const payload = JSON.parse(parsed.data) as { summary?: string }
+        const payload = JSON.parse(parsed.data) as { summary?: string; cached?: boolean }
         finalSummary = payload.summary?.trim() || ''
+        cachedFromServer = payload.cached
       } else if (parsed.event === 'error') {
         const payload = JSON.parse(parsed.data) as { message?: string }
         throw new Error(payload.message || 'Erreur lors du streaming')
@@ -130,6 +136,6 @@ export async function summarizeArticleStream(
     }
   }
 
-  return { summary: finalSummary ?? '' }
+  return { summary: finalSummary ?? '', cached: cachedFromServer }
 }
 

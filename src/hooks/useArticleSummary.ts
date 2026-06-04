@@ -8,6 +8,7 @@ type UseArticleSummaryState = {
   loading: boolean
   error: string | null
   cached: boolean
+  serverConnected: boolean
 }
 
 type GenerateSummaryParams = {
@@ -45,6 +46,7 @@ export function useArticleSummary() {
     loading: false,
     error: null,
     cached: false,
+    serverConnected: false,
   })
 
   const requestSeq = useRef(0)
@@ -55,7 +57,7 @@ export function useArticleSummary() {
     requestSeq.current += 1
     abortRef.current?.abort()
     abortRef.current = null
-    setState({ summary: null, loading: false, error: null, cached: false })
+    setState({ summary: null, loading: false, error: null, cached: false, serverConnected: false })
   }, [])
 
   const attemptSummarize = useCallback(
@@ -66,6 +68,10 @@ export function useArticleSummary() {
         onDelta(delta) {
           if (requestId !== requestSeq.current) return
           setState((prev) => ({ ...prev, summary: (prev.summary ?? '') + delta }))
+        },
+        onMeta() {
+          if (requestId !== requestSeq.current) return
+          setState((prev) => ({ ...prev, serverConnected: true }))
         },
       }).catch(async (err) => {
         if (abort.signal.aborted) throw err
@@ -93,12 +99,12 @@ export function useArticleSummary() {
       // Vérifier le cache sessionStorage d'abord
       const cached = getCached(params.article.id)
       if (cached) {
-        setState({ summary: cached, loading: false, error: null, cached: true })
+        setState({ summary: cached, loading: false, error: null, cached: true, serverConnected: true })
         inFlightRef.current = null
         return
       }
 
-      setState({ summary: '', loading: true, error: null, cached: false })
+      setState({ summary: '', loading: true, error: null, cached: false, serverConnected: false })
 
       let lastError: Error | null = null
 
@@ -115,7 +121,7 @@ export function useArticleSummary() {
           if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
           // Sauvegarder dans le cache
           if (result.summary) setCache(params.article.id, result.summary)
-          setState({ summary: result.summary, loading: false, error: null, cached: false })
+          setState({ summary: result.summary, loading: false, error: null, cached: result.cached ?? false, serverConnected: true })
           inFlightRef.current = null
           return
         } catch (err) {

@@ -9,6 +9,8 @@ type SummaryModalProps = {
   isLoading: boolean
   error: string | null
   cached?: boolean
+  serverConnected?: boolean
+  generationId: number
 }
 
 function renderMarkdown(text: string, showCursor = false) {
@@ -43,7 +45,6 @@ function renderMarkdown(text: string, showCursor = false) {
     })
     .join('')
 
-  // Curseur clignotant injecté en ligne — ne passe jamais à la ligne suivante
   const cursor = showCursor
     ? '<span class="inline-block w-2 h-4 ml-0.5 bg-va-rust/60 animate-pulse rounded-sm align-middle"></span>'
     : ''
@@ -59,8 +60,9 @@ export function SummaryModal({
   isLoading,
   error,
   cached = false,
+  serverConnected = false,
+  generationId,
 }: SummaryModalProps) {
-  // Split summary into main text and insight
   const parts = summary
     ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/)
     : [summary, '']
@@ -71,27 +73,34 @@ export function SummaryModal({
 
   const hasContent = summary !== null && summary.length > 0
 
-  // Timer de chargement progressif
+  // ── Timer de chargement (seuils serrés) ──
   const loadStartRef = useRef<number>(0)
   const [rawStage, setRawStage] = useState<number>(0)
-  // Stage affiché : 0 si pas en chargement, sinon la valeur brute
   const loadStage = !isLoading || hasContent ? 0 : rawStage
 
+  // Reset quand on génère un nouveau résumé
   useEffect(() => {
     if (!isLoading || hasContent) return
     loadStartRef.current = Date.now()
-    queueMicrotask(() => setRawStage(0))
+    setRawStage(0)
 
     const checkStage = () => {
       const elapsed = Date.now() - loadStartRef.current
-      if (elapsed > 80_000) setRawStage(3)
-      else if (elapsed > 40_000) setRawStage(2)
-      else if (elapsed > 12_000) setRawStage(1)
+      if (serverConnected) {
+        // Après connexion serveur, on passe aux étapes de génération
+        if (elapsed > 25_000) setRawStage(3)
+        else if (elapsed > 8_000) setRawStage(2)
+        else if (elapsed > 3_000) setRawStage(1)
+      } else {
+        // En attente de connexion
+        if (elapsed > 15_000) setRawStage(3)
+        else if (elapsed > 6_000) setRawStage(2)
+      }
     }
     checkStage()
-    const id = setInterval(checkStage, 4000)
+    const id = setInterval(checkStage, 2000)
     return () => clearInterval(id)
-  }, [isLoading, hasContent])
+  }, [isLoading, hasContent, serverConnected, generationId])
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -147,7 +156,6 @@ export function SummaryModal({
               {/* Indicateur de chargement progressif */}
               {isLoading && !hasContent && (
                 <div className="flex flex-col items-center justify-center gap-3 py-12">
-                  {/* Barre de progression subtile */}
                   <div className="h-1 w-48 overflow-hidden rounded-full bg-va-mist/30 dark:bg-white/5">
                     <div
                       className={[
@@ -155,30 +163,40 @@ export function SummaryModal({
                         loadStage === 0
                           ? "w-1/4 bg-va-rust/40"
                           : loadStage === 1
-                            ? "w-2/4 bg-va-rust/50"
+                            ? "w-2/5 bg-va-rust/50"
                             : loadStage === 2
-                              ? "w-3/4 bg-va-rust/60"
-                              : "w-[90%] bg-red-400/50",
+                              ? "w-3/5 bg-va-rust/60"
+                              : "w-[85%] bg-red-400/50",
                       ].join(" ")}
                     />
                   </div>
                   <span className="text-sm text-va-ink-muted/50 dark:text-[#8f877c]/50">
-                    {loadStage === 0 && "Rédaction du résumé…"}
-                    {loadStage === 1 && "Le modèle IA réfléchit…"}
-                    {loadStage === 2 && "Modèle gratuit un peu lent, patience…"}
-                    {loadStage === 3 && "Le serveur tarde — n'hésite pas à réessayer"}
+                    {!serverConnected && loadStage <= 1 && "Connexion au serveur IA…"}
+                    {!serverConnected && loadStage === 2 && "Le serveur tarde un peu…"}
+                    {!serverConnected && loadStage === 3 && "Le serveur ne répond pas — n'hésite pas à réessayer"}
+                    {serverConnected && loadStage === 0 && "Le modèle IA démarre…"}
+                    {serverConnected && loadStage === 1 && "Le modèle IA rédige le résumé…"}
+                    {serverConnected && loadStage === 2 && "Modèle gratuit un peu lent, patience…"}
+                    {serverConnected && loadStage === 3 && "Le modèle tarde — n'hésite pas à réessayer"}
                   </span>
                 </div>
               )}
 
-              {hasContent && renderMarkdown(mainSummary || '')}
+              {/* Contenu avec animation d'apparition */}
+              {hasContent && (
+                <div className="motion-safe:animate-[content-fade-in_350ms_ease-out_both]">
+                  {renderMarkdown(mainSummary || '', isLoading)}
+                </div>
+              )}
 
-              {/* Bloc Avis — animation uniquement pour les résumés frais, pas le cache */}
+              {/* Bloc Avis — animé dans tous les cas (cache = plus rapide) */}
               {insight && (
                 <div className={[
                   'mt-6 p-5 rounded-xl border',
                   'border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5',
-                  cached ? '' : 'animate-insight-appear',
+                  cached
+                    ? 'motion-safe:animate-[insight-appear_250ms_ease-out_both]'
+                    : 'motion-safe:animate-[insight-appear_500ms_ease-out_both]',
                 ].join(' ')}>
                   {renderMarkdown(insight)}
                 </div>

@@ -14,10 +14,16 @@ export function ArticlesPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [summaryGen, setSummaryGen] = useState(0)
+  const [generationId, setGenerationId] = useState(0)
 
-  const { summary, loading: summaryLoading, error: summaryError, generateSummary, cached } =
-    useArticleSummary()
+  const {
+    summary,
+    loading: summaryLoading,
+    error: summaryError,
+    generateSummary,
+    cached,
+    serverConnected,
+  } = useArticleSummary()
 
   const pageSize = DEFAULT_PAGE_SIZE
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -52,7 +58,7 @@ export function ArticlesPage() {
       console.log("DEBUG: onGenerateSummary appelé pour l'article:", article.id)
       setSelectedId(article.id)
       setIsModalOpen(true)
-      setSummaryGen((prev) => prev + 1)
+      setGenerationId((prev) => prev + 1)
       void generateSummary({ article, maxLength: 1000 })
     },
     [generateSummary],
@@ -219,7 +225,6 @@ export function ArticlesPage() {
       </div>
 
       <SummaryModal
-        key={summaryGen}
         isOpen={isModalOpen}
         onClose={onCloseModal}
         article={selectedArticle}
@@ -227,6 +232,8 @@ export function ArticlesPage() {
         isLoading={summaryLoading}
         error={summaryError}
         cached={cached}
+        serverConnected={serverConnected}
+        generationId={generationId}
       />
     </main>
   )
