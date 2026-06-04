@@ -122,7 +122,7 @@ export function SummaryModal({
                 </div>
               )}
 
-              {hasContent && renderMarkdown(mainSummary || '', isLoading)}
+              {hasContent && renderMarkdown(mainSummary || '')}
 
               {/* Bloc Avis : animation CSS @keyframes native — se déclenche quand la div entre dans le DOM */}
               {insight && (
