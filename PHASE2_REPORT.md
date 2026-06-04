@@ -25,7 +25,7 @@
 
 ---
 
-## 🔄 Phase 2 — VIG-005 · Logo mascotte + UI sobre (TERMINÉE ✅)
+## ✅ Phase 2 — VIG-005 · Logo mascotte + UI sobre (TERMINÉE)
 
 ### Terminé
 
@@ -35,17 +35,67 @@
 | Suppression des 3 couches/orbes sur `ArticleCard` | ✅ |
 | Design system unifié (bordures `[0.04-0.06]`, backdrop-blur) | ✅ |
 | Sous-titre centré sur mobile | ✅ |
-| État vide : message sobre, mention dev discrète | ✅ |
 | « Fil d'articles » centré mobile, description supprimée | ✅ |
 | Point compteur : vert si >1 article, rouille sinon | ✅ |
 | Message patientez dans la modale d'erreur | ✅ |
 | État vide / landing page avec logo centré | ✅ |
-| Nettoyage `index.css` (radial-gradients supprimés) | ✅ |
 | Bouton « Exemple de flux RSS » réduit | ✅ |
+| **🔄 Fluidité des résumés (voir section dédiée)** | ✅ |
+| **🖱️ Curseur de stream inline + masqué sur l'insight** | ✅ |
+| **🎨 Orbes décoratives restaurées et ajustées** | ✅ |
 
 ### Reste à faire
 
 *Aucun — VIG-005 est terminée.*
+
+---
+
+## 🔄 Correctif fluidité résumés (sous-ticket VIG-005)
+
+### Symptômes
+- Flash visuel à chaque ouverture de modale (`key={summaryGen}` → unmount/remount)
+- Délai avant la 1ʳᵉ étape de la barre de progression (12 secondes)
+- Cache serveur invisible (flag `cached` ignoré)
+- Apparition brutale du contenu (pas de transition)
+
+### Solutions appliquées
+
+| Problème | Solution | Fichiers |
+|----------|----------|----------|
+| Unmount/remount à chaque résumé | `key={summaryGen}` remplacé par `generationId` + `useEffect` interne | `ArticlesPage.tsx`, `SummaryModal.tsx` |
+| Délai barre de progression | Seuils réduits à 3s/8s/25s ; event SSE `meta` exploité | `SummaryModal.tsx`, `summarizationService.ts` |
+| Cache serveur invisible | Flag `cached` propagé depuis le `done` SSE → badge « en cache » | `useArticleSummary.ts`, `summarizationService.ts` |
+| Apparition brutale | Animation CSS `content-fade-in` (350ms) sur le résumé + `insight-appear` adaptatif | `SummaryModal.tsx`, `index.css` |
+
+---
+
+## 🖱️ Correctif curseur (sous-ticket VIG-005)
+
+### Symptôme
+Le `<span>` du curseur était ajouté **après** les blocs HTML (`</p>`, `</li>`), il tombait donc à la ligne sous le résumé. De plus, il restait visible pendant le stream de la note IA (insight).
+
+### Solution
+- **Injection inline** : le curseur est désormais injecté à l'intérieur du dernier bloc HTML via `html.replace(/<\/(\w+)>\s*$/, cursorHtml + closingTag)`
+- **Masquage intelligent** : la condition `!insight` dans `renderMarkdown(mainSummary || '', isLoading && !insight)` cache le curseur dès que la section `### 💡 L'avis` commence à streamer
+
+---
+
+## 🎨 Orbes décoratives (ajustement VIG-005)
+
+### Contexte
+Les radial-gradients du `body` avaient été retirés pendant le nettoyage initial de VIG-005. L'utilisateur les a réclamés (« excellent style »).
+
+### Restauration
+```css
+body {
+  background-image:
+    radial-gradient(900px 420px at 12% 5%, oklch(0.93 0.09 65 / 0.40), transparent 62%),
+    radial-gradient(700px 360px at 88% 0%, oklch(0.88 0.06 185 / 0.22), transparent 55%);
+}
+```
+
+### Ajustement
+La 1ʳᵉ orbe était à `-8%` (centre au-dessus du viewport → quasi invisible sous le header). Position corrigée à `5%` et opacité augmentée `0.35` → `0.40`.
 
 ---
 
@@ -56,24 +106,53 @@
 | Stream crash `Controller already closed` → try-catch | `server/routes/summarize.ts` |
 | Timeout lecture 90s + `reader.cancel()` | `src/services/summarizationService.ts` |
 | Barre de progression + messages évolutifs dans la modale | `src/components/SummaryModal.tsx` |
+| ESLint `react-hooks/purity` → extraction `LoadingIndicator` avec `key` | `src/components/SummaryModal.tsx` |
+| ESLint `no-useless-assignment` → `let html: string` sans init | `src/components/SummaryModal.tsx` |
 
 ---
 
-## 📁 Fichiers modifiés (Phase 1 + 2)
+## 📁 Tous les fichiers modifiés (Phase 1 + 2)
 
 | Fichier | Changements |
 |---------|-------------|
 | `src/components/SandboxHeader.tsx` | **Nouveau** — header frosted glass slim (56px), logo, stats pill |
-| `src/pages/ArticlesPage.tsx` | Header remplacé, messages épurés, padding réduit |
+| `src/pages/ArticlesPage.tsx` | Header remplacé, messages épurés, landing page logo centré, `generationId` au lieu de `key={summaryGen}`, `serverConnected` |
 | `src/components/ArticleCard.tsx` | −3 couches de fond, −2 orbes → 1 couche propre |
-| `src/components/SummaryModal.tsx` | Barre progression + 4 stages de chargement |
-| `src/services/summarizationService.ts` | Timeout 90s, `reader.cancel()` |
-| `server/routes/summarize.ts` | `controller.close()` try-catch |
+| `src/components/SummaryModal.tsx` | Barre progression, 4 stages, `LoadingIndicator` séparé, animation `content-fade-in`, curseur inline, `generationId` reset |
+| `src/services/summarizationService.ts` | Timeout 90s, `reader.cancel()`, event SSE `meta`, flag `cached` |
+| `server/routes/summarize.ts` | `controller.close()` try-catch, event `meta` |
 | `server/lib/aiService.ts` | Multi-model fallback, retry exponentiel, timeout 45s |
-| `src/hooks/useArticleSummary.ts` | Cache sessionStorage, inFlightRef |
-| `src/index.css` | `--animate-insight-appear`, `@keyframes insight-appear` |
+| `src/hooks/useArticleSummary.ts` | Cache sessionStorage, inFlightRef, propagation `cached` serveur, `serverConnected` |
+| `src/index.css` | `--animate-insight-appear`, `@keyframes insight-appear`, `@keyframes va-card-in`, `@keyframes content-fade-in`, orbes restaurées |
 | `vite.config.ts` | Proxy `/api` → localhost:8788 |
 | `vercel.json` | Rewrites `/api/*` → VPS:8788 |
+
+---
+
+## 🔮 Prochaine étape : VIG-006 — Recherche & Filtrage
+
+### Pourquoi c'est la suite logique
+
+- **1045+ articles** en base : impossible de tout parcourir sans recherche
+- **Valeur utilisateur immédiate** : trouver un article par mot-clé, date, ou source
+- **Apprentissage technique** : debouncing, URL search params, filtres combinés côté serveur
+- **Faible complexité** : peut être livré en 2-3 sessions
+
+### Tâches proposées
+
+| ID | Tâche | Complexité |
+|----|-------|------------|
+| VIG-006a | Barre de recherche avec debounce (300ms) | 🟢 Simple |
+| VIG-006b | Endpoint API `GET /api/articles?q=&source=&from=&to=` | 🟡 Moyen |
+| VIG-006c | Filtres par source (dropdown avec les 4 sources) | 🟢 Simple |
+| VIG-006d | Tri par date (récent / ancien) | 🟢 Simple |
+| VIG-006e | URL search params (`?q=openai&source=lemonde`) → partageable | 🟡 Moyen |
+
+### Questions ouvertes pour la prochaine session
+
+- Veut-on un filtre par date (calendrier ou presets « 7 derniers jours ») ?
+- La recherche doit-elle porter sur le titre uniquement ou aussi le résumé ?
+- Préfères-tu commencer par VIG-006 ou as-tu une autre priorité en tête ?
 
 ---
 
@@ -99,27 +178,26 @@ CONTEXTE PROJET :
   (OpenAI, Cloudflare, Le Monde, Frandroid)
 
 ÉTAT ACTUEL :
-Phase 1 TERMINÉE (VIG-001 à VIG-004 : pagination, fiabilité résumés,
-UX chargement, cache).
-Phase 2 EN COURS — VIG-005 (Logo mascotte + UI sobre) :
-- ✅ Header frosted glass avec logo 32px (SandboxHeader.tsx)
-- ✅ ArticleCard nettoyée (−2 orbes, −3 couches de fond)
-- ✅ Design system unifié (bordures subtiles, backdrop-blur)
-- ✅ Sous-titre centré mobile, messages épurés
-- ✅ Barre de progression + timeout 90s sur les résumés IA
-- ❌ État vide / landing page avec logo centré
-- ❌ Nettoyage index.css (radial-gradients, keyframes)
-- ❌ Bouton "Exemple de flux RSS" à réduire
+Phase 1 TERMINÉE (VIG-001 à VIG-004).
+Phase 2 TERMINÉE — VIG-005 (Logo mascotte + UI sobre) :
+- ✅ Header frosted glass, ArticleCard épurée, design system unifié
+- ✅ Landing page avec logo centré, état vide sobre
+- ✅ Fluidité résumés : plus de flash (generationId au lieu de key),
+  event meta SSE, cache serveur propagé, content-fade-in animation
+- ✅ Curseur de stream inline, masqué automatiquement sur l'insight
+- ✅ Orbes décoratives restaurées (radial-gradients ajustés)
+- ✅ Barre de progression réactive (3s/8s/25s), LoadingIndicator
+- ✅ Badge « en cache » pour sessionStorage ET cache serveur
+- ✅ ESLint 0 erreur, TypeScript strict
 
-OBJECTIF : Terminer VIG-005, puis attaquer la suite du backlog.
+OBJECTIF : Commencer VIG-006 — Recherche & Filtrage des articles.
 
-Tâches restantes pour VIG-005 :
-1. Créer un état vide/landing stylé avec le logo centré quand
-   aucun article n'est sélectionné (ou première visite)
-2. Nettoyer index.css : supprimer/simplifier les radial-gradients
-   du body et les keyframes inutilisées
-3. Réduire le bouton "Exemple de flux RSS" dans l'état vide
-4. Déployer sur Vercel et vérifier le rendu final
+Tâches proposées pour VIG-006 :
+1. Barre de recherche avec debounce 300ms (côté frontend)
+2. Endpoint API GET /api/articles?q=&source=&sort=
+3. Filtres par source (dropdown)
+4. Tri par date (récent/ancien)
+5. URL search params pour liens partageables
 
 INSTRUCTIONS :
 - Charge le fichier PHASE2_REPORT.md et AGENTS.md avant de coder
@@ -136,6 +214,7 @@ RÈGLES :
 - Sépare logique (hooks), types (interfaces), vue (composants)
 - Ne jamais commiter de secrets (.env dans .gitignore)
 - Utilise bun pour les commandes
+- Vérifie ESLint (bun x eslint) AVANT de commit
 
 Préférences utilisateur :
 - Actions concrètes, pas juste des descriptions
