@@ -8,7 +8,7 @@ export type Article = {
   urlSource: string
   imageUrl?: string
   sourceLabel?: string
-  categorie?: Categorie
+  categorie?: Categorie | ''
 }
 
 export type ArticleQueryParams = {
@@ -16,7 +16,7 @@ export type ArticleQueryParams = {
   offset?: number
   q?: string
   source?: string
-  categorie?: Categorie
+  categorie?: Categorie | ''
   sort?: 'recent' | 'ancien'
 }
 

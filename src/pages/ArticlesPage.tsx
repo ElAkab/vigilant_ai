@@ -84,9 +84,9 @@ export function ArticlesPage() {
 				{
 					limit: pageSize,
 					offset,
-					q: f.q || undefined,
-					source: f.source || undefined,
-					categorie: f.categorie || undefined,
+					q: f.q,
+					source: f.source,
+					categorie: f.categorie,
 					sort: f.sort,
 				},
 				opts,
