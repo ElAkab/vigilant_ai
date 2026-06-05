@@ -62,8 +62,25 @@ function stratifiedSort(articles: Article[], sort: 'recent' | 'ancien'): Article
   return result
 }
 
+/** Déduplique par ID (garde la 1ère occurrence) + tri par date */
+function dedupeAndSort(articles: Article[], sort: 'recent' | 'ancien'): Article[] {
+  const seen = new Set<string>()
+  const unique = articles.filter((a) => {
+    if (seen.has(a.id)) return false
+    seen.add(a.id)
+    return true
+  })
+
+  const dir = sort === 'recent' ? -1 : 1
+  return unique.sort((a, b) => {
+    if (a.datePublication < b.datePublication) return -dir
+    if (a.datePublication > b.datePublication) return dir
+    return 0
+  })
+}
+
 // ── Exports pour les tests ────────────────────────────────────────
-export const __test = { matchQuery, matchSource, stratifiedSort }
+export const __test = { dedupeAndSort, matchQuery, matchSource, stratifiedSort }
 
 export async function handleListArticles(req: Request): Promise<Response> {
   if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Méthode non autorisée')
