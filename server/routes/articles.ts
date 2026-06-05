@@ -130,6 +130,12 @@ export async function handleListArticles(req: Request): Promise<Response> {
     merged = merged.filter((article) => article.categorie === categorie)
   }
 
+  // ── Cap à 640 articles max par source (uniquement en mode source spécifique) ─
+  const MAX_PER_SOURCE = 640
+  if (source && merged.length > MAX_PER_SOURCE) {
+    merged = merged.slice(0, MAX_PER_SOURCE)
+  }
+
   // ── Tri stratifié quand aucune source spécifique n'est demandée ─
   if (!source) {
     merged = stratifiedSort(merged, sort)
