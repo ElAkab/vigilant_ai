@@ -10,6 +10,7 @@ import type { Article, Categorie } from "../types/article";
 
 const DEFAULT_PAGE_SIZE = 10;
 const DEBOUNCE_MS = 300;
+const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface FilterState {
 	q: string;
@@ -43,7 +44,8 @@ function writeFilterToURL(f: FilterState): void {
 }
 
 export function ArticlesPage() {
-	const { items, total, loading, error, reload } = useArticles();
+	const { items, total, loading, error, reload, newArticleCount, resetNewCount } =
+		useArticles();
 	const [selectedId, setSelectedId] = useState<string | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [generationId, setGenerationId] = useState(0);
@@ -76,16 +78,19 @@ export function ArticlesPage() {
 	});
 
 	const triggerReload = useCallback(
-		(f: FilterState) => {
+		(f: FilterState, opts?: { silent?: boolean }) => {
 			const offset = (f.page - 1) * pageSize;
-			reload({
-				limit: pageSize,
-				offset,
-				q: f.q || undefined,
-				source: f.source || undefined,
-				categorie: f.categorie || undefined,
-				sort: f.sort,
-			});
+			reload(
+				{
+					limit: pageSize,
+					offset,
+					q: f.q || undefined,
+					source: f.source || undefined,
+					categorie: f.categorie || undefined,
+					sort: f.sort,
+				},
+				opts,
+			);
 		},
 		[pageSize, reload],
 	);
@@ -149,6 +154,16 @@ export function ArticlesPage() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []); // exécuté une seule fois au montage
 
+	// ── Polling automatique toutes les 5 minutes ────────────────────
+	useEffect(() => {
+		const interval = setInterval(() => {
+			const currentFilter = filterRef.current;
+			triggerReload(currentFilter, { silent: true });
+		}, POLL_INTERVAL_MS);
+
+		return () => clearInterval(interval);
+	}, [triggerReload]);
+
 	const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
 	const effectiveSelectedId = useMemo(() => {
@@ -182,7 +197,12 @@ export function ArticlesPage() {
 
 	return (
 		<main className="min-h-dvh">
-			<SandboxHeader totalArticles={total} loading={loading} />
+			<SandboxHeader
+				totalArticles={total}
+				loading={loading}
+				newCount={newArticleCount}
+				onBadgeClick={resetNewCount}
+			/>
 
 			{/* Sous-titre — toutes tailles d'écran */}
 			<div className="sm:hidden block border-b border-black/[0.04] bg-white/50 backdrop-blur-sm dark:border-white/[0.04] dark:bg-zinc-950/50">

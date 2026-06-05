@@ -1,4 +1,4 @@
-export type Categorie = 'Tech' | 'Géopolitique' | 'Général'
+export type Categorie = 'Tech' | 'Géopolitique' | 'Jeux vidéo' | 'Général'
 
 export type Article = {
   id: string

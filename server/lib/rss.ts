@@ -67,7 +67,7 @@ function extractImageUrl(item: Record<string, unknown>): string | undefined {
 
 export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
   console.log(`[RSS] Fetching ${source.label} (${source.url})...`);
-  const res = await fetchWithTimeout(source.url, 8_000)
+  const res = await fetchWithTimeout(source.url, source.timeoutMs ?? 8_000)
   console.log(`[RSS] Response ${res.status} for ${source.label}`);
   
   if (!res.ok) {

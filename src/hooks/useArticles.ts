@@ -10,6 +10,11 @@ interface UseArticlesState {
   error: string | null
 }
 
+interface ReloadOptions {
+  /** Si true, ne réinitialise pas la baseline (utilisé pour le polling) */
+  silent?: boolean
+}
+
 export function useArticles() {
   const [state, setState] = useState<UseArticlesState>({
     items: [],
@@ -18,16 +23,19 @@ export function useArticles() {
     error: null,
   })
 
+  // ── Gestion de la concurrence ────────────────────────────────────
   const seqRef = useRef(0)
   const cancelledRef = useRef(false)
-  // Garder les derniers params pour que la pagination les préserve
   const lastParamsRef = useRef<ArticleQueryParams>({})
 
+  // ── Compteur d'articles non vus ──────────────────────────────────
+  const baselineTotalRef = useRef(0)
+  const [newArticleCount, setNewArticleCount] = useState(0)
+
   const reload = useCallback(
-    async (params: ArticleQueryParams = {}) => {
+    async (params: ArticleQueryParams = {}, opts: ReloadOptions = {}) => {
       const runId = ++seqRef.current
       // Merge safe : ne pas écraser les params existants avec undefined
-      // Pagination → passe juste {limit, offset} → hérite q/source/categorie/sort
       const merged = { ...lastParamsRef.current }
       if (params.limit !== undefined) merged.limit = params.limit
       if (params.offset !== undefined) merged.offset = params.offset
@@ -42,6 +50,17 @@ export function useArticles() {
         const result: PaginatedArticles = await listArticles(merged)
         if (cancelledRef.current) return
         if (runId !== seqRef.current) return
+
+        // Calculer les nouveaux articles (polling uniquement)
+        if (opts.silent) {
+          const diff = result.total - baselineTotalRef.current
+          setNewArticleCount(Math.max(0, diff))
+        } else {
+          // Action utilisateur → reset baseline
+          baselineTotalRef.current = result.total
+          setNewArticleCount(0)
+        }
+
         setState({
           items: result.items,
           total: result.total,
@@ -64,6 +83,12 @@ export function useArticles() {
     [],
   )
 
+  // Reset manuel : l'utilisateur a pris connaissance des nouveaux articles
+  const resetNewCount = useCallback(() => {
+    baselineTotalRef.current = state.total
+    setNewArticleCount(0)
+  }, [state.total])
+
   useEffect(() => {
     cancelledRef.current = false
 
@@ -76,5 +101,5 @@ export function useArticles() {
     }
   }, [reload])
 
-  return { ...state, reload }
+  return { ...state, reload, newArticleCount, resetNewCount }
 }
