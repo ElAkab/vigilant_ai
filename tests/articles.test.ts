@@ -173,3 +173,84 @@ describe("Intégration filtres + tri", () => {
     expect(filtered.map((a) => a.id)).toEqual(["1", "3"]);
   });
 });
+
+describe("stratifiedSort", () => {
+  test("round-robin : alterne les sources, tri récent", async () => {
+    const { __test } = await import("../server/routes/articles");
+
+    // 3 sources, volumes différents
+    const articles: Article[] = [
+      // OpenAI: 3 articles
+      makeArticle({ id: "o1", sourceLabel: "OpenAI", datePublication: "2026-06-05T00:00:00.000Z" }),
+      makeArticle({ id: "o2", sourceLabel: "OpenAI", datePublication: "2026-06-01T00:00:00.000Z" }),
+      makeArticle({ id: "o3", sourceLabel: "OpenAI", datePublication: "2026-05-01T00:00:00.000Z" }),
+      // Cloudflare: 1 article
+      makeArticle({ id: "c1", sourceLabel: "Cloudflare", datePublication: "2026-06-03T00:00:00.000Z" }),
+      // BBC: 2 articles
+      makeArticle({ id: "b1", sourceLabel: "BBC World", datePublication: "2026-06-04T00:00:00.000Z" }),
+      makeArticle({ id: "b2", sourceLabel: "BBC World", datePublication: "2026-05-15T00:00:00.000Z" }),
+    ];
+
+    const sorted = __test.stratifiedSort(articles, "recent");
+
+    // Round 1: o1(Jun5), c1(Jun3), b1(Jun4)
+    expect(sorted[0]!.id).toBe("o1");
+    expect(sorted[1]!.id).toBe("c1");
+    expect(sorted[2]!.id).toBe("b1");
+    // Round 2: o2(Jun1), b2(May15)
+    expect(sorted[3]!.id).toBe("o2");
+    expect(sorted[4]!.id).toBe("b2");
+    // Round 3: o3(May1)
+    expect(sorted[5]!.id).toBe("o3");
+
+    // Toutes les sources sont représentées dans les 3 premiers
+    const sourcesFirst3 = new Set(sorted.slice(0, 3).map(a => a.sourceLabel));
+    expect(sourcesFirst3.size).toBe(3);
+  });
+
+  test("round-robin : tri ancien", async () => {
+    const { __test } = await import("../server/routes/articles");
+
+    const articles: Article[] = [
+      makeArticle({ id: "a1", sourceLabel: "A", datePublication: "2026-01-01T00:00:00.000Z" }),
+      makeArticle({ id: "a2", sourceLabel: "A", datePublication: "2026-03-01T00:00:00.000Z" }),
+      makeArticle({ id: "b1", sourceLabel: "B", datePublication: "2026-02-01T00:00:00.000Z" }),
+    ];
+
+    const sorted = __test.stratifiedSort(articles, "ancien");
+
+    // Round 1: a1(Jan) puis b1(Feb) — chaque source, son plus ancien
+    expect(sorted[0]!.id).toBe("a1");
+    expect(sorted[1]!.id).toBe("b1");
+    // Round 2: a2(Mar)
+    expect(sorted[2]!.id).toBe("a2");
+  });
+
+  test("liste vide", async () => {
+    const { __test } = await import("../server/routes/articles");
+    expect(__test.stratifiedSort([], "recent").length).toBe(0);
+  });
+
+  test("source unique : équivaut à un tri normal", async () => {
+    const { __test } = await import("../server/routes/articles");
+
+    const articles: Article[] = [
+      makeArticle({ id: "1", sourceLabel: "Solo", datePublication: "2026-01-01T00:00:00.000Z" }),
+      makeArticle({ id: "2", sourceLabel: "Solo", datePublication: "2026-06-01T00:00:00.000Z" }),
+    ];
+
+    const sorted = __test.stratifiedSort(articles, "recent");
+    expect(sorted[0]!.id).toBe("2"); // plus récent d'abord
+    expect(sorted[1]!.id).toBe("1");
+  });
+
+  test("sourceLabel absent → regroupé sous 'inconnu'", async () => {
+    const { __test } = await import("../server/routes/articles");
+
+    const a = makeArticle({ id: "x", sourceLabel: undefined });
+    a.sourceLabel = undefined;
+
+    const sorted = __test.stratifiedSort([a], "recent");
+    expect(sorted.length).toBe(1);
+  });
+});

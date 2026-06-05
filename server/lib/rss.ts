@@ -7,11 +7,6 @@ import { HttpError } from './http'
 
 const parser = new Parser()
 
-/** Articles max conservés par source après tri antéchronologique */
-const MAX_PER_SOURCE = 100
-/** Âge maximal des articles (en jours) */
-const MAX_AGE_DAYS = 90
-
 function stableId(input: string): string {
   return createHash('sha1').update(input).digest('hex').slice(0, 16)
 }
@@ -128,12 +123,5 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
       } satisfies Article
     })
     .filter((x): x is Article => Boolean(x))
-    // ── Fenêtre temporelle + cap par source ─────────────────────
-    .filter((a) => {
-      const cutoff = new Date()
-      cutoff.setDate(cutoff.getDate() - MAX_AGE_DAYS)
-      return a.datePublication >= cutoff.toISOString()
-    })
-    .slice(0, MAX_PER_SOURCE)
 }
 

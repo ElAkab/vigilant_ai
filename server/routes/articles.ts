@@ -39,8 +39,47 @@ function matchSource(article: Article, source: string): boolean {
   return label.includes(source.toLowerCase())
 }
 
+/** Tri stratifié : round-robin entre les sources pour une distribution équitable */
+function stratifiedSort(articles: Article[], sort: 'recent' | 'ancien'): Article[] {
+  // Grouper par source
+  const bySource = new Map<string, Article[]>()
+  for (const a of articles) {
+    const key = a.sourceLabel ?? 'inconnu'
+    if (!bySource.has(key)) bySource.set(key, [])
+    bySource.get(key)!.push(a)
+  }
+
+  // Trier chaque groupe par date
+  const dir = sort === 'recent' ? -1 : 1
+  for (const group of bySource.values()) {
+    group.sort((a, b) => {
+      if (a.datePublication < b.datePublication) return -dir
+      if (a.datePublication > b.datePublication) return dir
+      return 0
+    })
+  }
+
+  // Round-robin : piocher l'article i de chaque source, puis i+1, etc.
+  const groups = [...bySource.values()]
+  const result: Article[] = []
+  let index = 0
+  let added: boolean
+  do {
+    added = false
+    for (const group of groups) {
+      if (index < group.length) {
+        result.push(group[index]!)
+        added = true
+      }
+    }
+    index++
+  } while (added)
+
+  return result
+}
+
 // ── Exports pour les tests ────────────────────────────────────────
-export const __test = { dedupeAndSort, matchQuery, matchSource }
+export const __test = { dedupeAndSort, matchQuery, matchSource, stratifiedSort }
 
 export async function handleListArticles(req: Request): Promise<Response> {
   if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Méthode non autorisée')
@@ -91,8 +130,13 @@ export async function handleListArticles(req: Request): Promise<Response> {
     merged = merged.filter((article) => article.categorie === categorie)
   }
 
+  // ── Tri stratifié quand aucune source spécifique n'est demandée ─
+  if (!source) {
+    merged = stratifiedSort(merged, sort)
+  }
+
   const total = merged.length
-  console.log(`[Articles API] Fusionné ${merged.length} articles après filtres. Erreurs de sources:`, errors)
+  console.log(`[Articles API] Fusionné ${merged.length} articles après filtres. Stratifié: ${!source}. Erreurs de sources:`, errors)
 
   if (total === 0 && settled.some((r) => r.status === 'fulfilled')) {
     // Les sources sont OK mais les filtres ne donnent rien — page vide, pas d'erreur
