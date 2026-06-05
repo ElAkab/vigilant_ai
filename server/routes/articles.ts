@@ -5,26 +5,10 @@ import { TTLCache } from '../lib/cache'
 import { HttpError, json } from '../lib/http'
 import { fetchRssArticles } from '../lib/rss'
 import { checkRateLimit } from '../lib/rateLimit'
+import { upsertArticles, queryArticles, type ArticleFilters } from '../lib/db'
 
-const perSourceCache = new TTLCache<string, Article[]>(10 * 60_000)
-
-function dedupeAndSort(items: Article[], sort: 'recent' | 'ancien'): Article[] {
-  const map = new Map<string, Article>()
-  for (const item of items) {
-    if (!map.has(item.id)) {
-      map.set(item.id, item)
-    }
-  }
-
-  const deduped = [...map.values()]
-  const dir = sort === 'recent' ? -1 : 1
-  deduped.sort((a, b) => {
-    if (a.datePublication < b.datePublication) return -dir
-    if (a.datePublication > b.datePublication) return dir
-    return 0
-  })
-  return deduped
-}
+/** Cache 10 minutes pour éviter de spammer les flux RSS */
+const rssFetchCache = new TTLCache<string, Article[]>(10 * 60_000)
 
 function matchQuery(article: Article, q: string): boolean {
   const query = q.toLowerCase()
@@ -79,7 +63,7 @@ function stratifiedSort(articles: Article[], sort: 'recent' | 'ancien'): Article
 }
 
 // ── Exports pour les tests ────────────────────────────────────────
-export const __test = { dedupeAndSort, matchQuery, matchSource, stratifiedSort }
+export const __test = { matchQuery, matchSource, stratifiedSort }
 
 export async function handleListArticles(req: Request): Promise<Response> {
   if (req.method !== 'GET') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Méthode non autorisée')
@@ -97,19 +81,24 @@ export async function handleListArticles(req: Request): Promise<Response> {
   const categorie = (url.searchParams.get('categorie')?.trim() || undefined) as Categorie | undefined
   const sort = (url.searchParams.get('sort') === 'ancien' ? 'ancien' : 'recent') as 'recent' | 'ancien'
 
+  // ── Étape 1 : Fetch RSS → upsert en base ──────────────────────────
   const settled = await Promise.allSettled(
     RSS_SOURCES.map(async (src) => {
-      const items = await perSourceCache.getOrSet(`rss:${src.id}`, async () => fetchRssArticles(src))
+      const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssArticles(src))
       return { sourceId: src.id, sourceLabel: src.label, items }
     }),
   )
 
   const errors: Array<{ sourceId: string; message: string }> = []
-  const results: Article[][] = []
+  let newArticleCount = 0
 
   for (const r of settled) {
     if (r.status === 'fulfilled') {
-      results.push(r.value.items)
+      if (r.value.items.length > 0) {
+        // Persister en base — l'upsert ignore les doublons, la rétention nettoie
+        upsertArticles(r.value.items)
+        newArticleCount += r.value.items.length
+      }
       continue
     }
 
@@ -117,9 +106,18 @@ export async function handleListArticles(req: Request): Promise<Response> {
     errors.push({ sourceId: 'unknown', message })
   }
 
-  let merged = dedupeAndSort(results.flat(), sort)
+  // ── Étape 2 : Requêter la base (source unique de vérité) ──────────
+  // On récupère TOUS les articles (pas de limite) pour le tri stratifié
+  const dbFilters: ArticleFilters = { sort }
+  if (q) dbFilters.q = q
+  if (source) dbFilters.source = source
+  if (categorie) dbFilters.categorie = categorie
 
-  // Appliquer les filtres
+  const { items: dbItems, total: dbTotal } = queryArticles(dbFilters)
+  // Note: queryArticles ne pagine pas côté DB — on pagine après le tri stratifié
+
+  // Appliquer les filtres additionnels côté applicatif (sécurité)
+  let merged = dbItems
   if (q) {
     merged = merged.filter((article) => matchQuery(article, q))
   }
@@ -130,22 +128,19 @@ export async function handleListArticles(req: Request): Promise<Response> {
     merged = merged.filter((article) => article.categorie === categorie)
   }
 
-  // ── Cap à 640 articles max par source (uniquement en mode source spécifique) ─
-  const MAX_PER_SOURCE = 640
-  if (source && merged.length > MAX_PER_SOURCE) {
-    merged = merged.slice(0, MAX_PER_SOURCE)
-  }
-
-  // ── Tri stratifié quand aucune source spécifique n'est demandée ─
+  // ── Étape 3 : Tri stratifié (round-robin) pour « Toutes les sources » ─
   if (!source) {
     merged = stratifiedSort(merged, sort)
   }
 
   const total = merged.length
-  console.log(`[Articles API] Fusionné ${merged.length} articles après filtres. Stratifié: ${!source}. Erreurs de sources:`, errors)
+  console.log(
+    `[Articles API] DB: ${dbTotal} articles. Après filtres + stratifié: ${total}. ` +
+    `Stratifié: ${!source}. Erreurs: ${errors.length}. Nouveaux articles RSS: ${newArticleCount}`,
+  )
 
-  if (total === 0 && settled.some((r) => r.status === 'fulfilled')) {
-    // Les sources sont OK mais les filtres ne donnent rien — page vide, pas d'erreur
+  // ── Page vide : filtre trop restrictif ─────────────────────────────
+  if (total === 0) {
     return json({
       items: [],
       total: 0,
@@ -154,10 +149,6 @@ export async function handleListArticles(req: Request): Promise<Response> {
       totalPages: 0,
       meta: { sourceCount: RSS_SOURCES.length, errors },
     })
-  }
-
-  if (total === 0) {
-    throw new HttpError(502, 'RSS_UNAVAILABLE', errors[0]?.message ?? 'Aucune source RSS disponible')
   }
 
   const page = Math.floor(offset / limit) + 1

@@ -28,3 +28,4 @@ dist-old*
 .vercel/
 yarn.lock
 dist-live/
+server/data/
