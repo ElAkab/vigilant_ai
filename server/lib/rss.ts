@@ -7,6 +7,9 @@ import { HttpError } from './http'
 
 const parser = new Parser()
 
+/** Nombre max d'articles conservés par source (les plus récents) */
+const MAX_PER_SOURCE = 640
+
 function stableId(input: string): string {
   return createHash('sha1').update(input).digest('hex').slice(0, 16)
 }
@@ -123,5 +126,6 @@ export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
       } satisfies Article
     })
     .filter((x): x is Article => Boolean(x))
+    .slice(0, MAX_PER_SOURCE)
 }
 

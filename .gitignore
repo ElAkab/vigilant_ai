@@ -27,3 +27,5 @@ dist-old*
 .hermes/
 .vercel/
 yarn.lock
+dist-live/
+server/data/

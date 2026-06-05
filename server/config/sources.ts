@@ -52,9 +52,8 @@ export const RSS_SOURCES: RssSource[] = [
 	{
 		id: "bbc-world",
 		label: "BBC World",
-		url: "https://newsrss.bbc.co.uk/rss/newsonline_uk_edition/world/rss.xml",
+		url: "https://feeds.bbci.co.uk/news/world/rss.xml",
 		categorie: "Géopolitique",
-		timeoutMs: 12_000, // RSS 0.91 = parsing plus lent
 	},
 	{
 		id: "france24",

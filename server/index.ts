@@ -7,7 +7,9 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, extname } from "node:path";
 
 const port = Number(process.env.PORT ?? "8787");
-const distDir = join(import.meta.dir, "..", "dist");
+const distDir = process.env.STATIC_DIR
+  ? join(import.meta.dir, "..", process.env.STATIC_DIR)
+  : join(import.meta.dir, "..", "dist");
 
 // MIME types pour les fichiers statiques
 const MIME: Record<string, string> = {
