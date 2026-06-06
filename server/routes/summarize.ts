@@ -49,7 +49,7 @@ const PROMPT_TEMPLATES: Record<string, string> = {
     "1. Accroche : Le résumé doit OBLIGATOIREMENT commencer par la formule '**En gros :**'.",
     "2. Contenu : Le résumé doit être riche en détails pertinents, bien structuré pour être facilement lisible et aéré. Tu peux utiliser du Markdown pour une meilleure lisibilité.",
     "3. Conclusion : Il doit se terminer par le mot 'Voilà.'.",
-    "4. La Touche Unique : Après le 'Voilà.', insère un double retour à la ligne (\\n\\n) et ajoute une section séparée intitulée '### 💡 L'avis d'InsightStream'. Dans cette section, donne un avis intelligent, critique et avec une touche d'humour bien placée sur le sujet de l'article. Le tout, tenant sur une seule phrase.",
+    "4. La Touche Unique : Après le 'Voilà.', insère un double retour à la ligne (\\n\\n) puis écris EXACTEMENT le texte '<!-- insight -->' sur sa propre ligne (c'est un séparateur technique, ne le modifie pas). Juste après cette ligne, donne un avis intelligent, critique et avec une touche d'humour bien placée sur le sujet de l'article. Le tout, tenant sur une seule phrase.",
   ].join("\n"),
   en: [
     "You are a specialized and witty news monitoring assistant. Summarize the article below in English, STRICTLY following these formatting guidelines:",
@@ -57,7 +57,7 @@ const PROMPT_TEMPLATES: Record<string, string> = {
     "1. Hook: The summary MUST start with '**TL;DR:**'.",
     "2. Content: The summary should be rich in relevant details, well-structured for easy reading. You may use Markdown for better readability.",
     "3. Conclusion: It must end with the word 'That's it.'.",
-    "4. The Unique Touch: After 'That's it.', insert a double line break (\\n\\n) and add a separate section titled '### 💡 InsightStream's Take'. In this section, give a smart, critical opinion with a touch of well-placed humor. Keep it to a single sentence.",
+    "4. The Unique Touch: After 'That's it.', insert a double line break (\\n\\n) then write EXACTLY the text '<!-- insight -->' on its own line (do NOT modify this technical separator). Immediately after that line, give a smart, critical opinion with a touch of well-placed humor. Keep it to a single sentence.",
   ].join("\n"),
   nl: [
     "Je bent een gespecialiseerde en geestige nieuwsmonitoring-assistent. Vat het onderstaande artikel samen in het Nederlands, en volg STRIKT deze opmaakrichtlijnen:",
@@ -65,7 +65,7 @@ const PROMPT_TEMPLATES: Record<string, string> = {
     "1. Hook: De samenvatting MOET beginnen met '**Kort gezegd:**'.",
     "2. Inhoud: De samenvatting moet rijk zijn aan relevante details, goed gestructureerd voor leesbaarheid. Je mag Markdown gebruiken.",
     "3. Conclusie: Eindig met het woord 'Dat was het.'.",
-    "4. De Unieke Touch: Voeg na 'Dat was het.' een dubbele regelafbreking in (\\n\\n) en voeg een aparte sectie toe met de titel '### 💡 InsightStream's Mening'. Geef in deze sectie een slimme, kritische mening met een vleugje humor. Houd het bij één zin.",
+    "4. De Unieke Touch: Voeg na 'Dat was het.' een dubbele regelafbreking in (\\n\\n) en schrijf dan EXACT de tekst '<!-- insight -->' op een eigen regel (dit is een technische scheidingsteken, niet wijzigen). Direct na die regel, geef een slimme, kritische mening met een vleugje humor. Houd het bij één zin.",
   ].join("\n"),
   ar: [
     "نتا مساعد د لڤيي متخصص و فكاهي. لخص هاد لمقال بالدارجة المغربية، و تبع بالضبط هاد التعليمات د التنسيق:",
@@ -73,7 +73,7 @@ const PROMPT_TEMPLATES: Record<string, string> = {
     "1. لمقدمة: التلخيص خاصو يبدا بـ '**باختصار:**'.",
     "2. لمحتوى: التلخيص خاصو يكون غني بالتفاصيل لمهمة، و ممنظم باش يكون ساهل فـ لقراية. تقدر تستعمل Markdown.",
     "3. لخاتمة: خاصو يسالي بـ 'هادشي هو.'.",
-    "4. اللمسة لفريدة: من بعد 'هادشي هو.'، دير جوج د لأسطر خاويين (\\n\\n) و زيد قسم مستاقل معنون بـ '### 💡 رأي InsightStream'. فهاد القسم، عطي رأي ذكي و ناقد مع شوية د لفكاهة فـ بلاصتها. كولشي فـ جملة وحدة.",
+    "4. اللمسة لفريدة: من بعد 'هادشي هو.'، دير جوج د لأسطر خاويين (\\n\\n) و من بعد اكتب بالضبط '<!-- insight -->' فـ سطر بوحدو (هاد شي تقني، ماتبدلوش). موراه دغيا، عطي رأي ذكي و ناقد مع شوية د لفكاهة فـ بلاصتها. كولشي فـ جملة وحدة.",
   ].join("\n"),
 }
 

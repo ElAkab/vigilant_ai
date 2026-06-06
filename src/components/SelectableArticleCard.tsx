@@ -147,17 +147,25 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
   const { t } = useT()
   const delayMs = Math.min(styleIndex, 8) * 55
 
-  // Split entre résumé principal et insight (match toute ligne ### 💡 …)
-  // Pas de \n? — le newline reste dans parts[1] pour éviter un insight vide
-  // qui ferait disparaître la div pendant le streaming.
-  // ^#{1,3}\s*💡 = tolère # / ## / ### + espaces variables autour du 💡
-  const INSIGHT_SEPARATOR = /^#{1,3}\s*💡\s*[^\n]+/m
-  const parts = summary ? summary.split(INSIGHT_SEPARATOR) : [summary, '']
-  const mainSummary = parts[0]
-  const hasInsight = parts.length > 1
-  const insight = hasInsight && parts[1] != null ? parts[1].trim() : ''
+  // Séparateur fiable : HTML comment, invisible dans le navigateur
+  // Le modèle écrit '<!-- insight -->' sur sa propre ligne entre le résumé et la note
+  const SEPARATOR = '<!-- insight -->'
+  const splitIndex = summary ? summary.indexOf(SEPARATOR) : -1
+  const separatorFound = splitIndex >= 0
+
+  // Pendant le stream ou si pas de séparateur : rendu unifié
+  // (le commentaire HTML est invisible dans le navigateur → aucun flash)
+  const mainText = separatorFound
+    ? summary!.slice(0, splitIndex)
+    : (summary || '')
+  const insightText = separatorFound
+    ? summary!.slice(splitIndex + SEPARATOR.length).trim()
+    : ''
 
   const hasContent = summary !== null && summary.length > 0
+  // On affiche la div insight uniquement une fois le stream terminé
+  // (pour éviter le flash pendant que le séparateur n'est pas encore complet)
+  const showInsightDiv = !summaryLoading && insightText.length > 0
 
   return (
     <div
@@ -234,11 +242,11 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
 
               {hasContent && (
                 <div className="motion-safe:animate-[content-fade-in_350ms_ease-out_both]">
-                  {renderMarkdown(mainSummary || '', summaryLoading && !insight)}
+                  {renderMarkdown(mainText || '', summaryLoading && !showInsightDiv)}
                 </div>
               )}
 
-              {hasInsight && (
+              {showInsightDiv && (
                 <div
                   className={[
                     'mt-3 p-4 rounded-xl border',
@@ -248,13 +256,7 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
                       : 'motion-safe:animate-[insight-appear_500ms_ease-out_both]',
                   ].join(' ')}
                 >
-                  {insight ? (
-                    renderMarkdown(insight)
-                  ) : summaryLoading ? (
-                    <span className="text-sm italic text-va-ink-muted/40 animate-pulse">
-                      …
-                    </span>
-                  ) : null}
+                  {renderMarkdown(insightText)}
                 </div>
               )}
 
