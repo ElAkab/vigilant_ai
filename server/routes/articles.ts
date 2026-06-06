@@ -10,29 +10,77 @@ import { upsertArticles, queryArticles, type ArticleFilters } from '../lib/db'
 /** Cache 10 minutes pour éviter de spammer les flux RSS */
 const rssFetchCache = new TTLCache<string, Article[]>(10 * 60_000)
 
-/** Fetch toutes les sources RSS + upsert en DB. Retourne le décompte. */
+/** Ordre de priorité des catégories lors du fetch RSS */
+const CATEGORY_PRIORITY: Categorie[] = ['Géopolitique', 'Tech', 'Jeux vidéo']
+
+/** Fetch toutes les sources RSS + upsert en DB, par ordre de priorité.
+ *  Les sources d'une même catégorie sont fetchées en parallèle,
+ *  mais les catégories sont traitées séquentiellement (Géopolitique → Tech → Jeux vidéo).
+ *  Chaque catégorie est upsertée en base immédiatement, sans attendre les suivantes. */
 export async function fetchAndUpsertAllSources(): Promise<{ newCount: number; errors: Array<{ sourceId: string; sourceLabel: string; message: string }> }> {
-  const settled = await Promise.allSettled(
-    RSS_SOURCES.map(async (src) => {
-      const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssWithRetry(src))
-      return { sourceId: src.id, sourceLabel: src.label, items }
-    }),
-  )
+  // Grouper les sources par catégorie
+  const byCategory = new Map<Categorie, typeof RSS_SOURCES>()
+  for (const src of RSS_SOURCES) {
+    const cat = src.categorie
+    if (!byCategory.has(cat)) byCategory.set(cat, [])
+    byCategory.get(cat)!.push(src)
+  }
 
   const errors: Array<{ sourceId: string; sourceLabel: string; message: string }> = []
   let newCount = 0
 
-  for (const r of settled) {
-    if (r.status === 'fulfilled') {
-      if (r.value.items.length > 0) {
-        upsertArticles(r.value.items)
-        newCount += r.value.items.length
+  // Traiter les catégories dans l'ordre de priorité
+  for (const cat of CATEGORY_PRIORITY) {
+    const sources = byCategory.get(cat)
+    if (!sources || sources.length === 0) continue
+
+    console.log(`[RSS Priority] Début "${cat}" — ${sources.length} sources en parallèle`)
+
+    const settled = await Promise.allSettled(
+      sources.map(async (src) => {
+        const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssWithRetry(src))
+        return { sourceId: src.id, sourceLabel: src.label, items }
+      }),
+    )
+
+    for (const r of settled) {
+      if (r.status === 'fulfilled') {
+        if (r.value.items.length > 0) {
+          upsertArticles(r.value.items)
+          newCount += r.value.items.length
+        }
+        continue
       }
-      continue
+      const message = r.reason instanceof Error ? r.reason.message : 'Erreur inconnue'
+      errors.push({ sourceId: 'unknown', sourceLabel: 'unknown', message })
     }
-    const message = r.reason instanceof Error ? r.reason.message : 'Erreur inconnue'
-    // Extraire sourceId et sourceLabel du message d'erreur si possible
-    errors.push({ sourceId: 'unknown', sourceLabel: 'unknown', message })
+
+    console.log(`[RSS Priority] Catégorie "${cat}" OK — ${newCount} articles upsertés (cumulatif)`)
+  }
+
+  // Traiter les catégories hors priorité (ex: 'Général' si des sources sont ajoutées plus tard)
+  for (const [cat, sources] of byCategory) {
+    if (CATEGORY_PRIORITY.includes(cat)) continue
+    console.log(`[RSS Priority] Catégorie hors-prio "${cat}" — ${sources.length} sources`)
+
+    const settled = await Promise.allSettled(
+      sources.map(async (src) => {
+        const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssWithRetry(src))
+        return { sourceId: src.id, sourceLabel: src.label, items }
+      }),
+    )
+
+    for (const r of settled) {
+      if (r.status === 'fulfilled') {
+        if (r.value.items.length > 0) {
+          upsertArticles(r.value.items)
+          newCount += r.value.items.length
+        }
+        continue
+      }
+      const message = r.reason instanceof Error ? r.reason.message : 'Erreur inconnue'
+      errors.push({ sourceId: 'unknown', sourceLabel: 'unknown', message })
+    }
   }
 
   return { newCount, errors }
