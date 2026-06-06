@@ -148,9 +148,10 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
   const delayMs = Math.min(styleIndex, 8) * 55
 
   // Split entre résumé principal et insight (match toute ligne ### 💡 …)
-  // Pas de \\n? — le newline reste dans parts[1] pour éviter un insight vide
+  // Pas de \n? — le newline reste dans parts[1] pour éviter un insight vide
   // qui ferait disparaître la div pendant le streaming.
-  const INSIGHT_SEPARATOR = /### 💡 [^\\n]+/
+  // ^#{1,3}\s*💡 = tolère # / ## / ### + espaces variables autour du 💡
+  const INSIGHT_SEPARATOR = /^#{1,3}\s*💡\s*[^\n]+/m
   const parts = summary ? summary.split(INSIGHT_SEPARATOR) : [summary, '']
   const mainSummary = parts[0]
   const hasInsight = parts.length > 1

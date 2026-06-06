@@ -120,9 +120,15 @@ export function useArticleSummary() {
           const result = await attemptSummarize(params, requestId, abort)
 
           if (requestId !== requestSeq.current) { inFlightRef.current = null; return }
-          // Sauvegarder dans le cache
-          if (result.summary) setCache(params.article.id, result.summary)
-          setState({ summary: result.summary, loading: false, error: null, cached: result.cached ?? false, serverConnected: true })
+          // Sauvegarder dans le cache le texte accumulé (non tronqué)
+          setState((prev) => {
+            // prev.summary = texte complet accumulé pendant le stream
+            // result.summary = version clippée par le serveur (maxLength)
+            // On préfère le texte complet pour ne pas perdre l'insight en fin de résumé
+            const fullText = prev.summary || result.summary
+            if (fullText) setCache(params.article.id, fullText)
+            return { summary: fullText, loading: false, error: null, cached: result.cached ?? false, serverConnected: true }
+          })
           inFlightRef.current = null
           return
         } catch (err) {
