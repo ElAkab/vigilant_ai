@@ -14,6 +14,7 @@ type SummaryModalProps = {
   cached?: boolean
   serverConnected?: boolean
   generationId: number
+  onRegenerate?: () => void    // ← bouton "Régénérer" dans le footer
 }
 
 function renderMarkdown(text: string, showCursor = false) {
@@ -137,6 +138,7 @@ export function SummaryModal({
   cached = false,
   serverConnected = false,
   generationId,
+  onRegenerate,
 }: SummaryModalProps) {
   const { t } = useT()
 
@@ -235,7 +237,7 @@ export function SummaryModal({
         </div>
 
         {/* Pied de page */}
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-va-mist/50 p-6 dark:border-white/10">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-va-mist/50 p-6 dark:border-white/10">
           <a
             href={article.urlSource}
             target="_blank"
@@ -244,13 +246,28 @@ export function SummaryModal({
           >
             {t('summary.readSource')}
           </a>
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
-          >
-            {t('summary.close')}
-          </button>
+          <div className="flex items-center gap-3">
+            {onRegenerate && (
+              <button
+                type="button"
+                onClick={onRegenerate}
+                disabled={isLoading}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 disabled:opacity-40 disabled:pointer-events-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:hover:bg-zinc-900/60"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                {t('summary.regenerate')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
+            >
+              {t('summary.close')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
