@@ -3,12 +3,66 @@ import type { Categorie } from '../../src/types/article'
 import { RSS_SOURCES } from '../config/sources'
 import { TTLCache } from '../lib/cache'
 import { HttpError, json } from '../lib/http'
-import { fetchRssArticles } from '../lib/rss'
+import { fetchRssWithRetry } from '../lib/rss'
 import { checkRateLimit } from '../lib/rateLimit'
 import { upsertArticles, queryArticles, type ArticleFilters } from '../lib/db'
 
 /** Cache 10 minutes pour éviter de spammer les flux RSS */
 const rssFetchCache = new TTLCache<string, Article[]>(10 * 60_000)
+
+/** Fetch toutes les sources RSS + upsert en DB. Retourne le décompte. */
+export async function fetchAndUpsertAllSources(): Promise<{ newCount: number; errors: Array<{ sourceId: string; sourceLabel: string; message: string }> }> {
+  const settled = await Promise.allSettled(
+    RSS_SOURCES.map(async (src) => {
+      const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssWithRetry(src))
+      return { sourceId: src.id, sourceLabel: src.label, items }
+    }),
+  )
+
+  const errors: Array<{ sourceId: string; sourceLabel: string; message: string }> = []
+  let newCount = 0
+
+  for (const r of settled) {
+    if (r.status === 'fulfilled') {
+      if (r.value.items.length > 0) {
+        upsertArticles(r.value.items)
+        newCount += r.value.items.length
+      }
+      continue
+    }
+    const message = r.reason instanceof Error ? r.reason.message : 'Erreur inconnue'
+    // Extraire sourceId et sourceLabel du message d'erreur si possible
+    errors.push({ sourceId: 'unknown', sourceLabel: 'unknown', message })
+  }
+
+  return { newCount, errors }
+}
+
+/** GET /api/rss/refresh — force le rafraîchissement de tous les flux RSS */
+export async function handleRefreshRss(req: Request): Promise<Response> {
+  if (req.method !== 'GET' && req.method !== 'POST') {
+    throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Méthode non autorisée')
+  }
+
+  console.log('[RSS Refresh] Démarrage du rafraîchissement forcé...')
+  const start = performance.now()
+
+  // Vider le cache pour forcer un re-fetch
+  rssFetchCache.clear()
+
+  const { newCount, errors } = await fetchAndUpsertAllSources()
+  const ms = Math.round(performance.now() - start)
+
+  console.log(`[RSS Refresh] Terminé en ${ms}ms. ${newCount} articles traités, ${errors.length} erreurs.`)
+
+  return json({
+    ok: errors.length === 0,
+    newArticles: newCount,
+    errors,
+    durationMs: ms,
+    sourceCount: RSS_SOURCES.length,
+  })
+}
 
 function matchQuery(article: Article, q: string): boolean {
   const query = q.toLowerCase()
@@ -99,29 +153,7 @@ export async function handleListArticles(req: Request): Promise<Response> {
   const sort = (url.searchParams.get('sort') === 'ancien' ? 'ancien' : 'recent') as 'recent' | 'ancien'
 
   // ── Étape 1 : Fetch RSS → upsert en base ──────────────────────────
-  const settled = await Promise.allSettled(
-    RSS_SOURCES.map(async (src) => {
-      const items = await rssFetchCache.getOrSet(`rss:${src.id}`, async () => fetchRssArticles(src))
-      return { sourceId: src.id, sourceLabel: src.label, items }
-    }),
-  )
-
-  const errors: Array<{ sourceId: string; message: string }> = []
-  let newArticleCount = 0
-
-  for (const r of settled) {
-    if (r.status === 'fulfilled') {
-      if (r.value.items.length > 0) {
-        // Persister en base — l'upsert ignore les doublons, la rétention nettoie
-        upsertArticles(r.value.items)
-        newArticleCount += r.value.items.length
-      }
-      continue
-    }
-
-    const message = r.reason instanceof Error ? r.reason.message : 'Erreur inconnue'
-    errors.push({ sourceId: 'unknown', message })
-  }
+  const { newCount: newArticleCount, errors } = await fetchAndUpsertAllSources()
 
   // ── Étape 2 : Requêter la base (source unique de vérité) ──────────
   // On récupère TOUS les articles (pas de limite) pour le tri stratifié

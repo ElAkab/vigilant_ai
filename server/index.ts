@@ -1,5 +1,5 @@
 import { errorResponse } from "./lib/http";
-import { handleListArticles } from "./routes/articles";
+import { handleListArticles, handleRefreshRss, fetchAndUpsertAllSources } from "./routes/articles";
 import { handleSummarize, handleSummarizeStream } from "./routes/summarize";
 import { handleTranslate } from "./routes/translate";
 import { handleGetModelStatus } from "./routes/debug";
@@ -58,50 +58,61 @@ function route(req: Request): Promise<Response> | Response {
 	const url = new URL(req.url);
 	const pathname = url.pathname;
 
-	// Routes API
-	if (pathname === "/api/articles") return handleListArticles(req);
-	if (pathname === "/api/summarize") return handleSummarize(req);
-	if (pathname === "/api/summarize/stream") return handleSummarizeStream(req);
-	if (pathname === "/api/translate") return handleTranslate(req);
-	if (pathname === "/api/debug/models") return handleGetModelStatus(req);
+		// Routes API
+		if (pathname === "/api/articles") return handleListArticles(req);
+		if (pathname === "/api/rss/refresh") return handleRefreshRss(req);
+		if (pathname === "/api/summarize") return handleSummarize(req);
+		if (pathname === "/api/summarize/stream") return handleSummarizeStream(req);
+		if (pathname === "/api/translate") return handleTranslate(req);
+		if (pathname === "/api/debug/models") return handleGetModelStatus(req);
 
-	// Fichiers statiques (frontend)
-	const staticRes = serveStatic(url.pathname);
-	if (staticRes) return staticRes;
+		// Fichiers statiques (frontend)
+		const staticRes = serveStatic(url.pathname);
+		if (staticRes) return staticRes;
 
-	return new Response("Not found", { status: 404 });
-}
+		return new Response("Not found", { status: 404 });
+	}
 
-const server = Bun.serve({
-	port,
-	idleTimeout: 60,
-	async fetch(req: Request) {
-		try {
-			const started = performance.now();
-			const res = await route(req);
-			const ms = Math.round(performance.now() - started);
+	const server = Bun.serve({
+		port,
+		idleTimeout: 60,
+		async fetch(req: Request) {
+			try {
+				const started = performance.now();
+				const res = await route(req);
+				const ms = Math.round(performance.now() - started);
 
-			const url = new URL(req.url);
-			console.log(
-				JSON.stringify({
-					method: req.method,
-					path: url.pathname,
-					status: res.status,
-					ms,
-				}),
-			);
-			return res;
-		} catch (err) {
-			return errorResponse(err);
+				const url = new URL(req.url);
+				console.log(
+					JSON.stringify({
+						method: req.method,
+						path: url.pathname,
+						status: res.status,
+						ms,
+					}),
+				);
+				return res;
+			} catch (err) {
+				return errorResponse(err);
+			}
+		},
+	});
+
+	console.log(`Server ready: http://localhost:${server.port}`);
+	console.log(`  Frontend: http://localhost:${server.port}/`);
+	console.log(`  API:      http://localhost:${server.port}/api/articles`);
+
+	// Préchargement des modèles au démarrage
+	globalAIService.ensureModelsLoaded().catch((err) => {
+		console.error("[Models] Échec du préchargement des modèles:", err);
+	});
+
+	// Warmup RSS au démarrage — pré-remplit le cache et la DB
+	fetchAndUpsertAllSources().then(({ newCount, errors }) => {
+		console.log(`[RSS Warmup] ${newCount} articles traités, ${errors.length} erreurs`);
+		if (errors.length > 0) {
+			for (const e of errors) console.warn(`[RSS Warmup] Erreur: ${e.message}`);
 		}
-	},
-});
-
-console.log(`Server ready: http://localhost:${server.port}`);
-console.log(`  Frontend: http://localhost:${server.port}/`);
-console.log(`  API:      http://localhost:${server.port}/api/articles`);
-
-// Préchargement des modèles au démarrage
-globalAIService.ensureModelsLoaded().catch((err) => {
-	console.error("[Models] Échec du préchargement des modèles:", err);
-});
+	}).catch((err) => {
+		console.error("[RSS Warmup] Échec:", err);
+	});
