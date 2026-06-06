@@ -171,6 +171,13 @@ export function ArticlesPage() {
 		setSelectedArticle(null)
 	}, [resetSummary])
 
+	const onRegenerateSummary = useCallback(() => {
+		if (!selectedArticle) return
+		resetSummary()
+		setGenerationId((prev) => prev + 1)
+		generateSummaryV2({ article: selectedArticle, lang })
+	}, [selectedArticle, resetSummary, generateSummaryV2, lang])
+
 	// ── Pagination ──
 
 	const totalPages = Math.max(1, Math.ceil(total / pageSize))
@@ -396,6 +403,7 @@ export function ArticlesPage() {
 				error={summaryError}
 				cached={cached}
 				generationId={generationId}
+				onRegenerate={onRegenerateSummary}
 			/>
 		</main>
 	)

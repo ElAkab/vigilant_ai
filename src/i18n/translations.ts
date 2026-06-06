@@ -163,6 +163,12 @@ const t: TranslationMap = {
     nl: 'Sluiten',
     ar: 'سدّ',
   },
+  'summary.regenerate': {
+    fr: 'Régénérer',
+    en: 'Regenerate',
+    nl: 'Opnieuw',
+    ar: 'عاود ولّد',
+  },
 
   // ── Loading states ──
   'loading.connecting': {
