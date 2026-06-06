@@ -1,13 +1,16 @@
-import { memo } from "react";
+import { memo } from "react"
+import { useT } from "../i18n/LanguageContext"
+import { LANGS, LANG_LABELS, type Lang } from "../i18n/types"
+import { selectBase } from "./SearchBar"
 
 // ─── Types ────────────────────────────────────────────────────────────
 
 type SandboxHeaderProps = {
-	totalArticles?: number;
-	loading?: boolean;
-	newCount?: number;
-	onBadgeClick?: () => void;
-};
+	totalArticles?: number
+	loading?: boolean
+	newCount?: number
+	onBadgeClick?: () => void
+}
 
 // ─── Composant ────────────────────────────────────────────────────────
 
@@ -17,6 +20,8 @@ function SandboxHeaderComponent({
 	newCount = 0,
 	onBadgeClick,
 }: SandboxHeaderProps) {
+	const { t, lang, setLang } = useT()
+
 	return (
 		<header
 			className={[
@@ -45,60 +50,62 @@ function SandboxHeaderComponent({
 						Vigilant AI
 					</h1>
 					<span className="hidden font-reading text-[10px] font-medium uppercase tracking-[0.2em] mx-auto text-va-ink-muted/60 sm:inline dark:text-[#8f877c]/60">
-						Agrégateur · Veille sémantique
+						{t('header.subtitle')}
 					</span>
 				</div>
-
-				<div className="flex-1" />
 
 				{/* ── Badge nouveaux articles ── */}
 				{newCount > 0 && (
 					<button
 						type="button"
 						onClick={onBadgeClick}
-						className={[
-							"flex flex-shrink-0 items-center gap-1.5",
-							"rounded-full px-2.5 py-1",
-							"bg-va-rust/12 border border-va-rust/20",
-							"dark:bg-va-rust/15 dark:border-va-rust/25",
-							"font-reading text-[10px] font-semibold tabular-nums",
-							"text-va-rust dark:text-va-rust-bright",
-							"animate-[badge-pop-in_400ms_ease-out]",
-							"transition hover:bg-va-rust/20 dark:hover:bg-va-rust/25",
-							"cursor-pointer",
-						].join(" ")}
-						title={`${newCount} nouvel article${newCount > 1 ? "les" : ""} — cliquer pour ignorer`}
+						className="motion-safe:animate-[badge-pop-in_400ms_ease-out_both] inline-flex items-center gap-1.5 rounded-full bg-va-rust/90 px-3 py-1 text-xs font-semibold text-white shadow-[0_4px_14px_-6px_rgb(200_70_30/0.55)] transition hover:bg-va-rust hover:scale-105"
 					>
-						<span className="inline-block h-1.5 w-1.5 rounded-full bg-va-rust dark:bg-va-rust-bright" />
-						{newCount}
+						<span className="inline-block h-1.5 w-1.5 rounded-full bg-white/70 animate-pulse" />
+						+{newCount}
 					</button>
 				)}
 
-				{/* ── Stats pill ── */}
-				<div
-					className={[
-						"flex flex-shrink-0 items-center gap-2",
-						"rounded-full border border-black/[0.04]",
-						"bg-black/[0.015] px-3 py-1.5",
-						"dark:border-white/[0.06] dark:bg-white/[0.025]",
-						"transition-colors duration-300",
-					].join(" ")}
-				>
-					<span
-						className={[
-							"inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full",
-							totalArticles > 1
-								? "bg-green-500/80 dark:bg-green-400/80"
-								: "bg-va-rust/80 dark:bg-va-rust-bright",
-						].join(" ")}
-					/>
-					<span className="font-reading text-[11px] tabular-nums text-va-ink-muted dark:text-[#a9a29a]">
-						{loading ? "…" : totalArticles.toLocaleString("fr-FR")}
+				{/* ── Compteur articles ── */}
+				{totalArticles > 0 && (
+					<span className="hidden sm:inline-flex items-center gap-1 font-reading text-[11px] font-medium tabular-nums text-va-ink-muted/60 dark:text-[#8f877c]/60">
+						{loading ? (
+							<span className="inline-block h-2.5 w-2.5 animate-spin rounded-full border border-va-mist/60 border-t-va-rust/70" />
+						) : (
+							<span className="inline-block h-2 w-2 rounded-full bg-va-teal/60" />
+						)}
+						{totalArticles}
 					</span>
+				)}
+
+				{/* ── Language Switcher ── */}
+				<div className="relative flex-shrink-0 min-w-[4.5rem]">
+					<select
+						value={lang}
+						onChange={(e) => setLang(e.target.value as Lang)}
+						className={`${selectBase} w-full`}
+						title={t('lang.switcher')}
+					>
+						{LANGS.map((l) => (
+							<option key={l} value={l}>
+								{LANG_LABELS[l]}
+							</option>
+						))}
+					</select>
+					<svg
+						className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-va-ink-muted/50"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+						strokeWidth={2}
+						stroke="currentColor"
+					>
+						<path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+					</svg>
 				</div>
 			</div>
 		</header>
-	);
+	)
 }
 
-export const SandboxHeader = memo(SandboxHeaderComponent);
+export const SandboxHeader = memo(SandboxHeaderComponent)

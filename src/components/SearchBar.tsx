@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Categorie } from '../types/article'
+import { useT } from '../i18n/LanguageContext'
 
 interface SearchBarProps {
   query: string
@@ -13,26 +14,25 @@ interface SearchBarProps {
   loading: boolean
 }
 
-type SourceOption = { value: string; label: string }
-
-const ALL_SOURCES: SourceOption[] = [
-  { value: '', label: 'Toutes sources' },
-  { value: 'OpenAI (blog)', label: 'OpenAI' },
-  { value: 'Cloudflare', label: 'Cloudflare' },
-  { value: 'The Verge', label: 'The Verge' },
-  { value: 'Ars Technica', label: 'Ars Technica' },
-  { value: 'Frandroid', label: 'Frandroid' },
-  { value: 'Le Monde', label: 'Le Monde' },
-  { value: 'BBC World', label: 'BBC World' },
-  { value: 'France 24', label: 'France 24' },
-  { value: 'Eurogamer', label: 'Eurogamer' },
-  { value: 'Gamekult', label: 'Gamekult' },
-]
+const RAW_SOURCES = [
+  'OpenAI (blog)',
+  'Cloudflare',
+  'The Verge',
+  'Ars Technica',
+  'Frandroid',
+  'Le Monde',
+  'BBC World',
+  'France 24',
+  'Al Jazeera (EN)',
+  'Al Jazeera (AR)',
+  'Eurogamer',
+  'Gamekult',
+] as const
 
 // Mapping catégorie → sources compatibles
 const CATEGORY_SOURCES: Partial<Record<Categorie, string[]>> = {
   Tech: ['OpenAI (blog)', 'Cloudflare', 'The Verge', 'Ars Technica', 'Frandroid'],
-  Géopolitique: ['Le Monde', 'BBC World', 'France 24'],
+  Géopolitique: ['Le Monde', 'BBC World', 'France 24', 'Al Jazeera (EN)', 'Al Jazeera (AR)'],
   'Jeux vidéo': ['Eurogamer', 'Gamekult'],
 }
 
@@ -45,15 +45,8 @@ for (const [cat, sources] of Object.entries(CATEGORY_SOURCES)) {
   }
 }
 
-const ALL_CATEGORIES: Array<{ value: Categorie | ''; label: string }> = [
-  { value: '', label: 'Toutes catégories' },
-  { value: 'Tech', label: 'Tech' },
-  { value: 'Géopolitique', label: 'Géopolitique' },
-  { value: 'Jeux vidéo', label: 'Jeux vidéo' },
-]
-
-const selectBase =
-  'appearance-none truncate rounded-xl border border-va-mist bg-white/90 px-3 py-2 pr-8 font-reading text-sm text-va-ink-soft transition focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 hover:border-va-rust/40 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist base-select'
+export const selectBase =
+  'base-select appearance-none truncate rounded-xl border border-va-mist bg-white/90 px-3 py-2 pr-8 font-reading text-sm text-va-ink-soft transition focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 hover:border-va-rust/40 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist'
 
 export function SearchBar({
   query,
@@ -66,21 +59,42 @@ export function SearchBar({
   onSortChange,
   loading,
 }: SearchBarProps) {
+  const { t } = useT()
+
+  // Sources + catégories (labels traduits dynamiquement)
+  const CAT_SOURCES: Array<{ value: string; label: string }> = useMemo(
+    () => [
+      { value: '', label: t('search.source.all') },
+      ...RAW_SOURCES.map((s) => ({ value: s, label: s })),
+    ],
+    [t],
+  )
+
+  const CAT_CATEGORIES: Array<{ value: Categorie | ''; label: string }> = useMemo(
+    () => [
+      { value: '', label: t('search.category.all') },
+      { value: 'Tech', label: t('category.tech') },
+      { value: 'Géopolitique', label: t('category.geopolitique') },
+      { value: 'Jeux vidéo', label: t('category.jeuxvideo') },
+    ],
+    [t],
+  )
+
   // Sources disponibles selon la catégorie sélectionnée
-  const availableSources = useMemo<SourceOption[]>(() => {
-    if (!categorie) return ALL_SOURCES
+  const availableSources = useMemo(() => {
+    if (!categorie) return CAT_SOURCES
     const allowed = CATEGORY_SOURCES[categorie]
-    if (!allowed) return ALL_SOURCES
-    return ALL_SOURCES.filter((s) => s.value === '' || allowed.includes(s.value))
-  }, [categorie])
+    if (!allowed) return CAT_SOURCES
+    return CAT_SOURCES.filter((s) => s.value === '' || allowed.includes(s.value))
+  }, [categorie, CAT_SOURCES])
 
   // Catégories disponibles selon la source sélectionnée
-  const availableCategories = useMemo<Array<{ value: Categorie | ''; label: string }>>(() => {
-    if (!source) return ALL_CATEGORIES
+  const availableCategories = useMemo(() => {
+    if (!source) return CAT_CATEGORIES
     const allowed = SOURCE_CATEGORIES[source]
-    if (!allowed) return ALL_CATEGORIES
-    return ALL_CATEGORIES.filter((c) => c.value === '' || allowed.includes(c.value as Categorie))
-  }, [source])
+    if (!allowed) return CAT_CATEGORIES
+    return CAT_CATEGORIES.filter((c) => c.value === '' || allowed.includes(c.value as Categorie))
+  }, [source, CAT_CATEGORIES])
 
   // Ref pour lire les valeurs à jour dans les callbacks
   const sourceRef = useRef(source)
@@ -136,7 +150,7 @@ export function SearchBar({
           type="search"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Rechercher un article…"
+          placeholder={t('search.placeholder')}
           className="w-full rounded-xl border border-va-mist bg-white/90 py-2.5 pl-10 pr-4 font-reading text-sm text-va-ink placeholder:text-va-ink-muted/40 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 hover:border-va-rust/40 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:placeholder:text-[#8f877c]/40"
         />
         {loading && (
@@ -209,7 +223,7 @@ export function SearchBar({
                 : 'text-va-ink-muted hover:text-va-ink-soft dark:text-[#8f877c] dark:hover:text-va-mist'
             }`}
           >
-            Récents
+            {t('search.sort.recent')}
           </button>
           <button
             type="button"
@@ -220,7 +234,7 @@ export function SearchBar({
                 : 'text-va-ink-muted hover:text-va-ink-soft dark:text-[#8f877c] dark:hover:text-va-mist'
             }`}
           >
-            Anciens
+            {t('search.sort.oldest')}
           </button>
         </div>
       </div>

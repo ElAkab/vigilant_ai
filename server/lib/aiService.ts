@@ -149,6 +149,193 @@ export class AIService {
 		);
 	}
 
+	/**
+	 * Appelle le LLM avec response_format json_object pour obtenir une réponse JSON structurée.
+	 * Avec fallback : si le JSON est invalide, tente d'extraire le JSON du texte brut.
+	 */
+	async generateJsonContent<T = Record<string, unknown>>(prompt: string): Promise<T> {
+		await this.ensureModelsLoaded();
+
+		if (this.mockMode) {
+			return { summary_md: "Mock summary", insight: "Mock insight" } as unknown as T;
+		}
+
+		const attempts = this.models.length;
+		let lastError: Error | null = null;
+
+		for (let i = 0; i < attempts; i++) {
+			const model = this.models[this.currentModelIndex];
+			const startedAt = Date.now();
+
+			try {
+				const rawText = await withRetry(
+					() => this.callOpenRouterJson(model, prompt),
+					{
+						maxRetries: 1,
+						baseDelayMs: 1000,
+						shouldRetry: isRetryable,
+					},
+				);
+
+				// Tenter de parser le JSON directement
+				const parsed = this.safeJsonParse<T>(rawText);
+				if (parsed) {
+					console.log(
+						`[AI:JSON] ✅ ${model.id} — ${Date.now() - startedAt}ms`,
+					);
+					this.currentModelIndex = 0;
+					return parsed;
+				}
+
+				// Fallback : extraction JSON du texte brut
+				const extracted = this.extractJsonFromText<T>(rawText);
+				if (extracted) {
+					console.log(
+						`[AI:JSON] ⚠️ ${model.id} — JSON extrait du texte — ${Date.now() - startedAt}ms`,
+					);
+					this.currentModelIndex = 0;
+					return extracted;
+				}
+
+				throw new Error(`Réponse non parsable en JSON: ${rawText.slice(0, 200)}`);
+			} catch (err) {
+				lastError = err as Error;
+				this.recordFailure(model.id, (err as Error).message);
+				console.error(
+					`[AI:JSON] ❌ ${model.id} — ${Date.now() - startedAt}ms — ${(err as Error).message}`,
+				);
+				this.currentModelIndex =
+					(this.currentModelIndex + 1) % this.models.length;
+			}
+		}
+
+		throw new HttpError(
+			502,
+			"AI_SERVICE_ERROR",
+			`All models failed for JSON generation: ${lastError?.message}`,
+		);
+	}
+
+	/** Parse JSON de manière tolérante, retourne null si échec */
+	private safeJsonParse<T>(text: string): T | null {
+		try {
+			const trimmed = text.trim();
+			return JSON.parse(trimmed) as T;
+		} catch {
+			return null;
+		}
+	}
+
+	/** Extrait un objet JSON du texte même s'il est entouré de markdown ou prose */
+	private extractJsonFromText<T>(text: string): T | null {
+		// Stratégie 1: extraire du markdown code block ```json ... ```
+		const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+		if (fenceMatch?.[1]) {
+			const parsed = this.safeJsonParse<T>(fenceMatch[1]);
+			if (parsed) return parsed;
+		}
+
+		// Stratégie 2: premier bloc { ... } complet
+		const braceMatch = text.match(/\{[\s\S]*\}/);
+		if (braceMatch?.[0]) {
+			const parsed = this.safeJsonParse<T>(braceMatch[0]);
+			if (parsed) return parsed;
+		}
+
+		return null;
+	}
+
+	/** Appel OpenRouter avec response_format json_object */
+	private async callOpenRouterJson(
+		model: AIModel,
+		prompt: string,
+	): Promise<string> {
+		const apiKey = getEnv("OPENROUTER_API_KEY");
+		if (!apiKey) {
+			throw new HttpError(500, "CONFIG_MISSING", "OPENROUTER_API_KEY manquant");
+		}
+
+		const body = {
+			model: model.id,
+			messages: [{ role: "user", content: prompt }],
+			temperature: model.temperature ?? 0.3,
+			top_p: 0.95,
+			response_format: { type: "json_object" },
+		};
+
+		const res = await this.fetchWithTimeout(model.endpoint, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify(body),
+		});
+
+		if (!res.ok) {
+			// Si le modèle ne supporte pas json_object, réessayer sans
+			if (res.status === 400) {
+				const errText = await res.text().catch(() => "");
+				if (errText.includes("json") || errText.includes("response_format")) {
+					console.warn(`[AI:JSON] ${model.id} ne supporte pas response_format, fallback sans`);
+					return this.callOpenRouterText(model, prompt);
+				}
+			}
+			const text = await res.text().catch(() => "");
+			throw new HttpError(
+				502,
+				"AI_SERVICE_ERROR",
+				`OpenRouter erreur (${model.id}): ${res.status} ${text}`,
+			);
+		}
+
+		const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+		const content =
+			(data?.choices?.[0] as Record<string, unknown>)?.message?.content ??
+			(data?.choices?.[0] as Record<string, unknown>)?.text ??
+			"";
+		return typeof content === "string" ? content : "";
+	}
+
+	/** Appel OpenRouter sans response_format (fallback pour modèles incompatibles) */
+	private async callOpenRouterText(
+		model: AIModel,
+		prompt: string,
+	): Promise<string> {
+		const apiKey = getEnv("OPENROUTER_API_KEY");
+		if (!apiKey) {
+			throw new HttpError(500, "CONFIG_MISSING", "OPENROUTER_API_KEY manquant");
+		}
+
+		const body = {
+			model: model.id,
+			messages: [{ role: "user", content: prompt }],
+			temperature: model.temperature ?? 0.3,
+			top_p: 0.95,
+		};
+
+		const res = await this.fetchWithTimeout(model.endpoint, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify(body),
+		});
+
+		if (!res.ok) {
+			const text = await res.text().catch(() => "");
+			throw new HttpError(502, "AI_SERVICE_ERROR", `OpenRouter erreur (${model.id}): ${res.status} ${text}`);
+		}
+
+		const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+		const content =
+			(data?.choices?.[0] as Record<string, unknown>)?.message?.content ??
+			(data?.choices?.[0] as Record<string, unknown>)?.text ??
+			"";
+		return typeof content === "string" ? content : "";
+	}
+
 	async generateContentStream(
 		prompt: string,
 	): Promise<{ stream: AsyncIterable<{ text: () => string }> }> {

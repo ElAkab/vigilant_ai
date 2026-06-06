@@ -1,202 +1,182 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react"
 
-import { SandboxHeader } from "../components/SandboxHeader";
-import { SelectableArticleCard } from "../components/SelectableArticleCard";
-import { SummaryModal } from "../components/SummaryModal";
-import { SearchBar } from "../components/SearchBar";
-import { useArticles } from "../hooks/useArticles";
-import { useArticleSummary } from "../hooks/useArticleSummary";
-import type { Article, Categorie } from "../types/article";
+import { SandboxHeader } from "../components/SandboxHeader"
+import { SelectableArticleCard } from "../components/SelectableArticleCard"
+import { SummaryModal } from "../components/SummaryModal"
+import { SearchBar } from "../components/SearchBar"
+import { useArticles } from "../hooks/useArticles"
+import { useArticleSummaryV2 } from "../hooks/useArticleSummary"
+import { useT } from "../i18n/LanguageContext"
+import type { Article, Categorie } from "../types/article"
 
-const DEFAULT_PAGE_SIZE = 10;
-const DEBOUNCE_MS = 300;
-const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const DEFAULT_PAGE_SIZE = 10
+const DEBOUNCE_MS = 300
+const POLL_INTERVAL_MS = 5 * 60 * 1000 // 5 minutes
 
 interface FilterState {
-	q: string;
-	source: string;
-	categorie: Categorie | "";
-	sort: "recent" | "ancien";
-	page: number;
+	q: string
+	source: string
+	categorie: Categorie | ""
+	sort: "recent" | "ancien"
+	page: number
 }
 
 function readFilterFromURL(): FilterState {
-	const sp = new URLSearchParams(window.location.search);
+	const sp = new URLSearchParams(window.location.search)
 	return {
 		q: sp.get("q") || "",
 		source: sp.get("source") || "",
 		categorie: (sp.get("categorie") as Categorie) || "",
 		sort: sp.get("sort") === "ancien" ? "ancien" : "recent",
 		page: Math.max(1, Number(sp.get("page") || 1)),
-	};
+	}
 }
 
 function writeFilterToURL(f: FilterState): void {
-	const sp = new URLSearchParams();
-	if (f.q) sp.set("q", f.q);
-	if (f.source) sp.set("source", f.source);
-	if (f.categorie) sp.set("categorie", f.categorie);
-	if (f.sort !== "recent") sp.set("sort", f.sort);
-	if (f.page > 1) sp.set("page", String(f.page));
-	const qs = sp.toString();
-	const url = qs ? `?${qs}` : window.location.pathname;
-	history.pushState(null, "", url);
+	const sp = new URLSearchParams()
+	if (f.q) sp.set("q", f.q)
+	if (f.source) sp.set("source", f.source)
+	if (f.categorie) sp.set("categorie", f.categorie)
+	if (f.sort !== "recent") sp.set("sort", f.sort)
+	if (f.page > 1) sp.set("page", String(f.page))
+	const qs = sp.toString()
+	const url = qs ? `?${qs}` : window.location.pathname
+	history.pushState(null, "", url)
 }
 
 export function ArticlesPage() {
+	const { t, lang } = useT()
 	const { items, total, loading, error, reload, newArticleCount, resetNewCount } =
-		useArticles();
-	const [selectedId, setSelectedId] = useState<string | null>(null);
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [generationId, setGenerationId] = useState(0);
+		useArticles()
+	const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
 
-	const {
-		summary,
-		loading: summaryLoading,
-		error: summaryError,
-		generateSummary,
-		cached,
-		serverConnected,
-	} = useArticleSummary();
+	const [filter, setFilter] = useState<FilterState>(readFilterFromURL)
+	const [searchInput, setSearchInput] = useState(filter.q)
 
-	// État des filtres (lu depuis l'URL au montage)
-	const [filter, setFilter] = useState<FilterState>(readFilterFromURL);
-	// Input local de la barre de recherche
-	const [searchInput, setSearchInput] = useState(filter.q);
+	// Synchroniser l'URL avec les filtres
+	useEffect(() => { writeFilterToURL(filter) }, [filter])
 
-	const pageSize = DEFAULT_PAGE_SIZE;
+	const { summaryMd, insight, loading: summaryLoading, error: summaryError, cached, generateSummaryV2, reset: resetSummary } = useArticleSummaryV2()
+	const [generationId, setGenerationId] = useState(0)
 
-	// Ref pour le debounce — évite useEffect + setState
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-		undefined,
-	);
-	const filterRef = useRef(filter);
-	// Synchroniser la ref avec le state — pattern React officiel pour lire
-	// la dernière valeur dans un callback asynchrone sans dépendance
-	useEffect(() => {
-		filterRef.current = filter;
-	});
+	const pageSize = DEFAULT_PAGE_SIZE
+
+	// Ref pour lire le filtre courant sans dépendance
+	const filterRef = useRef(filter)
+	useEffect(() => { filterRef.current = filter })
+
+	// ── Gestion des filtres ──
 
 	const triggerReload = useCallback(
-		(f: FilterState, opts?: { silent?: boolean }) => {
-			const offset = (f.page - 1) * pageSize;
+		(f: FilterState, opts: { silent?: boolean } = {}) => {
 			reload(
 				{
 					limit: pageSize,
-					offset,
-					q: f.q,
-					source: f.source,
-					categorie: f.categorie,
+					offset: (f.page - 1) * pageSize,
+					q: f.q || undefined,
+					source: f.source || undefined,
+					categorie: f.categorie || undefined,
 					sort: f.sort,
 				},
 				opts,
-			);
+			)
 		},
-		[pageSize, reload],
-	);
+		[reload, pageSize],
+	)
 
-	// Gestion du changement de texte de recherche (avec debounce)
+	const applyFilter = useCallback(
+		(partial: Partial<FilterState>, opts?: { silent?: boolean }) => {
+			setFilter((prev) => {
+				const next = { ...prev, ...partial, page: partial.page ?? 1 }
+				triggerReload(next, opts)
+				return next
+			})
+		},
+		[triggerReload],
+	)
+
+	// Debounce inline (conforme ESLint react-hooks/set-state-in-effect)
+	const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 	const onSearchChange = useCallback(
 		(value: string) => {
-			setSearchInput(value);
-			clearTimeout(debounceRef.current);
+			setSearchInput(value)
+			clearTimeout(debounceRef.current)
 			debounceRef.current = setTimeout(() => {
-				const currentFilter = filterRef.current;
-				const next: FilterState = { ...currentFilter, q: value, page: 1 };
-				writeFilterToURL(next);
-				setFilter(next);
-				triggerReload(next);
-			}, DEBOUNCE_MS);
+				const currentFilter = filterRef.current
+				const next = { ...currentFilter, q: value, page: 1 }
+				setFilter(next)
+				triggerReload(next)
+			}, DEBOUNCE_MS)
 		},
 		[triggerReload],
-	);
+	)
 
-	// Appliquer un filtre (source, categorie, sort) → reset page à 1
-	const applyFilter = useCallback(
-		(patch: Partial<FilterState>) => {
-			setFilter((prev) => {
-				const next = { ...prev, ...patch, page: 1 };
-				writeFilterToURL(next);
-				triggerReload(next);
-				return next;
-			});
-		},
-		[triggerReload],
-	);
-
-	// Changement de page → les filtres sont hérités de lastParamsRef
 	const goToPage = useCallback(
 		(page: number) => {
-			const currentFilter = filterRef.current;
-			const clamped = Math.max(1, Math.min(page, Math.ceil(total / pageSize)));
-			if (clamped === currentFilter.page) return;
-			const next = { ...currentFilter, page: clamped };
-			writeFilterToURL(next);
-			setFilter(next);
-			const offset = (clamped - 1) * pageSize;
-			reload({ limit: pageSize, offset });
+			setFilter((prev) => {
+				const next = { ...prev, page }
+				reload(
+					{
+						limit: pageSize,
+						offset: (page - 1) * pageSize,
+						q: prev.q || undefined,
+						// ne pas envoyer source/categorie quand non défini
+						...(prev.source ? { source: prev.source } : {}),
+						...(prev.categorie ? { categorie: prev.categorie } : {}),
+						sort: prev.sort,
+					},
+				)
+				return next
+			})
 		},
-		[total, pageSize, reload],
-	);
+		[reload, pageSize],
+	)
 
-	// Chargement initial (si l'URL a des params de recherche au montage)
+	// Chargement initial
 	useEffect(() => {
-		const initial = readFilterFromURL();
-		if (
-			initial.q ||
-			initial.source ||
-			initial.categorie ||
-			initial.sort !== "recent" ||
-			initial.page > 1
-		) {
-			triggerReload(initial);
-		}
+		triggerReload(filter)
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []); // exécuté une seule fois au montage
+	}, [])
 
-	// ── Polling automatique toutes les 5 minutes ────────────────────
+	// Polling
 	useEffect(() => {
 		const interval = setInterval(() => {
-			const currentFilter = filterRef.current;
-			triggerReload(currentFilter, { silent: true });
-		}, POLL_INTERVAL_MS);
+			const currentFilter = filterRef.current
+			triggerReload(currentFilter, { silent: true })
+		}, POLL_INTERVAL_MS)
+		return () => clearInterval(interval)
+	}, [triggerReload])
 
-		return () => clearInterval(interval);
-	}, [triggerReload]);
-
-	const totalPages = Math.max(1, Math.ceil(total / pageSize));
-
-	const effectiveSelectedId = useMemo(() => {
-		if (loading) return selectedId;
-		if (items.length === 0) return null;
-		return selectedId ?? items[0]!.id;
-	}, [items, loading, selectedId]);
-
-	const selectedArticle: Article | null = useMemo(() => {
-		if (!effectiveSelectedId) return null;
-		return items.find((a) => a.id === effectiveSelectedId) ?? null;
-	}, [items, effectiveSelectedId]);
+	// ── Gestion du résumé (modale) ──
 
 	const onGenerateSummary = useCallback(
 		(article: Article) => {
-			console.log(
-				"DEBUG: onGenerateSummary appelé pour l'article:",
-				article.id,
-			);
-			setSelectedId(article.id);
-			setIsModalOpen(true);
-			setGenerationId((prev) => prev + 1);
-			void generateSummary({ article, maxLength: 1000 });
+			if (selectedArticle?.id === article.id) {
+				// Même article → fermer
+				resetSummary()
+				setSelectedArticle(null)
+				return
+			}
+			// Nouvel article → ouvrir modale + lancer la génération
+			resetSummary()
+			setGenerationId((prev) => prev + 1)
+			setSelectedArticle(article)
+			generateSummaryV2({ article, lang })
 		},
-		[generateSummary],
-	);
+		[generateSummaryV2, resetSummary, lang, selectedArticle],
+	)
 
 	const onCloseModal = useCallback(() => {
-		setIsModalOpen(false);
-	}, []);
+		resetSummary()
+		setSelectedArticle(null)
+	}, [resetSummary])
+
+	// ── Pagination ──
+
+	const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
 	return (
-		<main className="min-h-dvh">
+		<main className="min-h-screen font-sans antialiased">
 			<SandboxHeader
 				totalArticles={total}
 				loading={loading}
@@ -204,10 +184,10 @@ export function ArticlesPage() {
 				onBadgeClick={resetNewCount}
 			/>
 
-			{/* Sous-titre — toutes tailles d'écran */}
+			{/* Sous-titre — mobile uniquement */}
 			<div className="sm:hidden block border-b border-black/[0.04] bg-white/50 backdrop-blur-sm dark:border-white/[0.04] dark:bg-zinc-950/50">
 				<p className="mx-auto max-w-6xl px-4 py-2 text-center font-reading text-[10px] font-medium uppercase tracking-[0.18em] text-va-ink-muted/60 dark:text-[#8f877c]/60">
-					Agrégateur · Veille sémantique
+					{t('header.subtitle')}
 				</p>
 			</div>
 
@@ -219,10 +199,10 @@ export function ArticlesPage() {
 					>
 						<div className="space-y-1">
 							<p className="font-semibold">
-								Impossible de charger les sources.
+								{t('articles.error.title')}
 							</p>
 							<p className="text-sm text-red-900/70 dark:text-red-100/70">
-								Merci de patienter, nous réessayons.
+								{t('articles.error.message')}
 							</p>
 							<p className="text-xs text-red-900/40 dark:text-red-100/40">
 								{error}
@@ -235,7 +215,7 @@ export function ArticlesPage() {
 								onClick={() => reload({ limit: pageSize, offset: 0 })}
 								className="inline-flex items-center justify-center rounded-xl bg-red-900 px-4 py-2.5 font-reading text-sm font-semibold text-red-50 shadow-[0_14px_34px_-20px_rgb(120_11_11/0.55)] transition hover:-translate-y-0.5 hover:bg-red-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:bg-red-200 dark:text-red-950 dark:hover:bg-red-100"
 							>
-								Réessayer
+								{t('articles.retry')}
 							</button>
 							<a
 								href="https://github.com/"
@@ -243,7 +223,7 @@ export function ArticlesPage() {
 								rel="noreferrer"
 								className="inline-flex items-center justify-center rounded-xl border border-red-200/80 bg-white/70 px-4 py-2.5 font-reading text-sm font-semibold text-red-900/90 transition hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 dark:border-white/10 dark:bg-zinc-950/40 dark:text-red-100/90 dark:hover:bg-zinc-950/60"
 							>
-								Vérifier la connexion
+								{t('articles.checkConnection')}
 							</a>
 						</div>
 					</div>
@@ -268,14 +248,14 @@ export function ArticlesPage() {
 					<section className="space-y-6">
 						<div className="text-center sm:text-left">
 							<h2 className="font-display text-2xl font-semibold tracking-[-0.03em] text-va-ink dark:text-[#f3eee6] sm:text-3xl">
-								Fil d&apos;articles
+								{t('articles.title')}
 							</h2>
 						</div>
 
 						<div className="flex flex-col gap-5 md:gap-6">
 							{loading ? (
 								<div className="rounded-2xl border border-dashed border-va-mist/90 bg-white/55 p-10 text-center font-reading text-sm text-va-ink-muted dark:border-white/10 dark:bg-zinc-950/30 dark:text-[#a39a91]">
-									Chargement de la sélection curatoriale…
+									{t('articles.loading')}
 								</div>
 							) : items.length === 0 ? (
 								<div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -286,15 +266,15 @@ export function ArticlesPage() {
 									/>
 									<p className="font-display text-xl font-semibold tracking-[-0.02em] text-va-ink dark:text-[#f3eee6]">
 										{filter.q || filter.source || filter.categorie
-											? "Aucun résultat pour ces filtres."
-											: "Aucun article pour le moment."}
+											? t('articles.empty.filtered')
+											: t('articles.empty.default')}
 									</p>
 									<p className="mt-2 max-w-sm text-xs text-va-ink-muted/55 dark:text-[#8f877c]/55">
 										{filter.q || filter.source || filter.categorie ? (
-											"Essaie de modifier ou réinitialiser les filtres."
+											t('articles.empty.hint.filtered')
 										) : (
 											<>
-												Les développeurs peuvent configurer leurs flux dans{" "}
+												{t('articles.empty.hint.default')}{" "}
 												<code className="rounded bg-black/[0.04] px-1.5 py-0.5 font-mono text-[11px] text-va-ink-muted dark:bg-white/[0.04] dark:text-[#b7aea3]">
 													server/config/sources.ts
 												</code>
@@ -307,17 +287,17 @@ export function ArticlesPage() {
 											<button
 												type="button"
 												onClick={() => {
-													setSearchInput("");
+													setSearchInput("")
 													applyFilter({
 														q: "",
 														source: "",
 														categorie: "",
 														sort: "recent",
-													});
+													})
 												}}
 												className="inline-flex items-center justify-center rounded-lg border border-black/[0.06] bg-white/60 px-3 py-1.5 font-reading text-[11px] font-medium text-va-ink-muted/70 transition hover:border-black/[0.12] hover:text-va-ink-soft dark:border-white/[0.08] dark:bg-zinc-900/40 dark:text-[#8f877c]/70 dark:hover:border-white/[0.15] dark:hover:text-va-mist"
 											>
-												Réinitialiser les filtres
+												{t('articles.resetFilters')}
 											</button>
 										</div>
 									)}
@@ -329,7 +309,7 @@ export function ArticlesPage() {
 												rel="noreferrer"
 												className="inline-flex items-center justify-center rounded-lg border border-black/[0.06] bg-white/60 px-3 py-1.5 font-reading text-[11px] font-medium text-va-ink-muted/70 transition hover:border-black/[0.12] hover:text-va-ink-soft dark:border-white/[0.08] dark:bg-zinc-900/40 dark:text-[#8f877c]/70 dark:hover:border-white/[0.15] dark:hover:text-va-mist"
 											>
-												Exemple de flux RSS
+												{t('articles.rssExample')}
 											</a>
 										</div>
 									)}
@@ -339,7 +319,7 @@ export function ArticlesPage() {
 									<SelectableArticleCard
 										key={article.id}
 										article={article}
-										isSelected={article.id === effectiveSelectedId}
+										isSelected={article.id === selectedArticle?.id}
 										onGenerateSummary={onGenerateSummary}
 										styleIndex={index}
 									/>
@@ -361,11 +341,11 @@ export function ArticlesPage() {
 									{filter.page}/{totalPages}
 								</span>
 								{Array.from({ length: totalPages }).map((_, i) => {
-									const page = i + 1;
+									const page = i + 1
 									const isVisible =
 										page === 1 ||
 										page === totalPages ||
-										Math.abs(page - filter.page) <= 1;
+										Math.abs(page - filter.page) <= 1
 
 									if (!isVisible) {
 										if (page === 2 || page === totalPages - 1) {
@@ -373,9 +353,9 @@ export function ArticlesPage() {
 												<span key={page} className="text-va-ink-muted px-1">
 													...
 												</span>
-											);
+											)
 										}
-										return null;
+										return null
 									}
 
 									return (
@@ -391,7 +371,7 @@ export function ArticlesPage() {
 										>
 											{page}
 										</button>
-									);
+									)
 								})}
 								<button
 									onClick={() => goToPage(filter.page + 1)}
@@ -407,16 +387,16 @@ export function ArticlesPage() {
 			</div>
 
 			<SummaryModal
-				isOpen={isModalOpen}
+				isOpen={selectedArticle !== null}
 				onClose={onCloseModal}
 				article={selectedArticle}
-				summary={summary}
+				summaryMd={summaryMd}
+				insight={insight}
 				isLoading={summaryLoading}
 				error={summaryError}
 				cached={cached}
-				serverConnected={serverConnected}
 				generationId={generationId}
 			/>
 		</main>
-	);
+	)
 }

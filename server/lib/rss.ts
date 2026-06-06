@@ -68,6 +68,21 @@ function extractImageUrl(item: Record<string, unknown>): string | undefined {
   return undefined;
 }
 
+/** Fetch avec retry + backoff exponentiel pour les erreurs transitoires */
+export async function fetchRssWithRetry(source: RssSource, maxRetries = 2): Promise<Article[]> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fetchRssArticles(source)
+    } catch (err) {
+      if (attempt === maxRetries) throw err
+      const delay = 2_000 * (attempt + 1) // 2s, 4s
+      console.log(`[RSS] Retry ${attempt + 1}/${maxRetries} pour ${source.label} dans ${delay}ms: ${err instanceof Error ? err.message : 'erreur'}`)
+      await new Promise((r) => setTimeout(r, delay))
+    }
+  }
+  throw new Error('unreachable')
+}
+
 export async function fetchRssArticles(source: RssSource): Promise<Article[]> {
   console.log(`[RSS] Fetching ${source.label} (${source.url})...`);
   const res = await fetchWithTimeout(source.url, source.timeoutMs ?? 8_000)
