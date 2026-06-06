@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { useT } from '../i18n/LanguageContext'
+import { useT } from '../i18n/useT'
 import type { Article } from '../types/article'
 import { ArticleCard } from './ArticleCard'
 

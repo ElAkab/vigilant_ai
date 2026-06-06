@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { Categorie } from '../types/article'
-import { useT } from '../i18n/LanguageContext'
+import { useT } from '../i18n/useT'
 
 interface SearchBarProps {
   query: string

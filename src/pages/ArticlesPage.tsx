@@ -6,7 +6,7 @@ import { SummaryModal } from "../components/SummaryModal"
 import { SearchBar } from "../components/SearchBar"
 import { useArticles } from "../hooks/useArticles"
 import { useArticleSummaryV2 } from "../hooks/useArticleSummary"
-import { useT } from "../i18n/LanguageContext"
+import { useT } from "../i18n/useT"
 import type { Article, Categorie } from "../types/article"
 
 const DEFAULT_PAGE_SIZE = 10
