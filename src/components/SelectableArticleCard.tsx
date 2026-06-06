@@ -148,10 +148,13 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
   const delayMs = Math.min(styleIndex, 8) * 55
 
   // Split entre résumé principal et insight (match toute ligne ### 💡 …)
-  const INSIGHT_SEPARATOR = /### 💡 [^\n]+\n?/
+  // Pas de \\n? — le newline reste dans parts[1] pour éviter un insight vide
+  // qui ferait disparaître la div pendant le streaming.
+  const INSIGHT_SEPARATOR = /### 💡 [^\\n]+/
   const parts = summary ? summary.split(INSIGHT_SEPARATOR) : [summary, '']
   const mainSummary = parts[0]
-  const insight = parts[1] ? parts[1].trim() : ''
+  const hasInsight = parts.length > 1
+  const insight = hasInsight && parts[1] != null ? parts[1].trim() : ''
 
   const hasContent = summary !== null && summary.length > 0
 
@@ -234,7 +237,7 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
                 </div>
               )}
 
-              {insight && (
+              {hasInsight && (
                 <div
                   className={[
                     'mt-3 p-4 rounded-xl border',
@@ -244,7 +247,13 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
                       : 'motion-safe:animate-[insight-appear_500ms_ease-out_both]',
                   ].join(' ')}
                 >
-                  {renderMarkdown(insight)}
+                  {insight ? (
+                    renderMarkdown(insight)
+                  ) : summaryLoading ? (
+                    <span className="text-sm italic text-va-ink-muted/40 animate-pulse">
+                      …
+                    </span>
+                  ) : null}
                 </div>
               )}
 
