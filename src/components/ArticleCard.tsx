@@ -4,6 +4,7 @@ import { safeHostname } from "../lib/url";
 import type { Article } from "../types/article";
 import { useT } from "../i18n/LanguageContext";
 import type { Lang } from "../i18n/types";
+import { useArticleTranslation } from "../hooks/useArticleTranslation";
 
 const LOCALES: Record<Lang, string> = {
   fr: 'fr-FR',
@@ -30,6 +31,14 @@ function ArticleCardComponent({
 
 	const host = safeHostname(article.urlSource);
 
+	// Traduction lazy du titre + résumé
+	const { translatedTitle, translatedResume, loading: translating } =
+		useArticleTranslation(article.id, article.titre, article.resume, lang);
+
+	const displayTitle = translatedTitle ?? article.titre;
+	const displayResume = translatedResume ?? article.resume;
+	const isTranslated = Boolean(translatedTitle);
+
 	return (
 		<article className="group/card relative isolate overflow-hidden rounded-2xl border border-black/[0.04] bg-white/70 p-5 shadow-[0_1px_0_rgb(0_0_0/0.03)_inset,0_8px_24px_-16px_rgb(0_0_0/0.08)] backdrop-blur-sm transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-0.5 hover:border-black/[0.08] hover:shadow-[0_1px_0_rgb(0_0_0/0.04)_inset,0_16px_32px_-20px_rgb(0_0_0/0.12)] dark:border-white/[0.06] dark:bg-zinc-900/60 dark:shadow-[0_1px_0_rgb(255_255_255/0.03)_inset,0_8px_24px_-16px_rgb(0_0_0/0.5)] dark:hover:border-white/[0.1] dark:hover:shadow-[0_1px_0_rgb(255_255_255/0.04)_inset,0_16px_32px_-20px_rgb(0_0_0/0.65)]">
 
@@ -51,18 +60,26 @@ function ArticleCardComponent({
 					</div>
 				)}
 				<div className="flex items-start justify-between gap-4">
-					<div className="min-w-0 space-y-2">
-						<h3 className="font-display text-lg font-semibold leading-snug tracking-[-0.02em] text-va-ink md:text-xl dark:text-[#f3eee6]">
-							{article.titre}
-						</h3>
+										<div className="min-w-0 space-y-2">
+											<h3 className="font-display text-lg font-semibold leading-snug tracking-[-0.02em] text-va-ink md:text-xl dark:text-[#f3eee6]">
+												{displayTitle}
+												{isTranslated && (
+													<span className="ml-2 inline-flex items-center rounded-full bg-va-teal/10 px-1.5 py-0.5 text-[10px] font-normal text-va-teal dark:bg-va-teal/20 dark:text-va-teal/80" title="Traduit automatiquement">
+														🌐
+													</span>
+												)}
+											</h3>
 
 						<hr className="border-va-mist/50 dark:border-white/10 my-2" />
 					</div>
 				</div>
 
-				<p className="line-clamp-6 -mt-3 font-reading text-sm leading-relaxed text-va-ink-soft dark:text-[#d6cec3]">
-					{article.resume}
-				</p>
+								<p className="line-clamp-6 -mt-3 font-reading text-sm leading-relaxed text-va-ink-soft dark:text-[#d6cec3]">
+									{displayResume}
+									{translating && !translatedResume && (
+										<span className="ml-1 inline-block h-3 w-3 animate-pulse rounded-full bg-va-teal/30" />
+									)}
+								</p>
 
 				<div className="mt-auto border-t border-va-mist/70 pt-4 dark:border-white/10">
 					<div className="flex flex-wrap items-center justify-between gap-3">

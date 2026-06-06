@@ -1,6 +1,7 @@
 import { errorResponse } from "./lib/http";
 import { handleListArticles } from "./routes/articles";
 import { handleSummarize, handleSummarizeStream } from "./routes/summarize";
+import { handleTranslate } from "./routes/translate";
 import { handleGetModelStatus } from "./routes/debug";
 import { globalAIService } from "./lib/aiService";
 import { readFileSync, existsSync } from "node:fs";
@@ -55,13 +56,14 @@ function serveStatic(pathname: string): Response | null {
 
 function route(req: Request): Promise<Response> | Response {
 	const url = new URL(req.url);
+	const pathname = url.pathname;
 
 	// Routes API
-	if (url.pathname === "/api/articles") return handleListArticles(req);
-	if (url.pathname === "/api/summarize") return handleSummarize(req);
-	if (url.pathname === "/api/summarize/stream")
-		return handleSummarizeStream(req);
-	if (url.pathname === "/api/debug/models") return handleGetModelStatus(req);
+	if (pathname === "/api/articles") return handleListArticles(req);
+	if (pathname === "/api/summarize") return handleSummarize(req);
+	if (pathname === "/api/summarize/stream") return handleSummarizeStream(req);
+	if (pathname === "/api/translate") return handleTranslate(req);
+	if (pathname === "/api/debug/models") return handleGetModelStatus(req);
 
 	// Fichiers statiques (frontend)
 	const staticRes = serveStatic(url.pathname);

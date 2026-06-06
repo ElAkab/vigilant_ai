@@ -147,13 +147,11 @@ export const SelectableArticleCard = memo(function SelectableArticleCard({
   const { t } = useT()
   const delayMs = Math.min(styleIndex, 8) * 55
 
-  const parts = summary
-    ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/)
-    : [summary, '']
+  // Split entre résumé principal et insight (match toute ligne ### 💡 …)
+  const INSIGHT_SEPARATOR = /### 💡 [^\n]+\n?/
+  const parts = summary ? summary.split(INSIGHT_SEPARATOR) : [summary, '']
   const mainSummary = parts[0]
-  const insight = parts[1]
-    ? parts[1].replace(/^ d'InsightStream/, '').trim()
-    : ''
+  const insight = parts[1] ? parts[1].trim() : ''
 
   const hasContent = summary !== null && summary.length > 0
 
