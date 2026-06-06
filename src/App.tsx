@@ -1,7 +1,12 @@
+import { LanguageProvider } from './i18n/LanguageContext'
 import { ArticlesPage } from './pages/ArticlesPage'
 
 function App() {
-  return <ArticlesPage />
+  return (
+    <LanguageProvider>
+      <ArticlesPage />
+    </LanguageProvider>
+  )
 }
 
 export default App

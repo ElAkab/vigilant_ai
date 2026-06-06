@@ -1,5 +1,6 @@
 import type { Article } from '../types/article'
 import { useEffect, useRef, useState } from 'react'
+import { useT } from '../i18n/LanguageContext'
 
 type SummaryModalProps = {
   isOpen: boolean
@@ -62,13 +63,13 @@ function renderMarkdown(text: string, showCursor = false) {
 }
 
 // ── Sous-composant : barre de progression + messages évolutifs ──
-// key={generationId} force le remount → state remis à zéro proprement
 
 type LoadingIndicatorProps = {
   serverConnected: boolean
 }
 
 function LoadingIndicator({ serverConnected }: LoadingIndicatorProps) {
+  const { t } = useT()
   const [rawStage, setRawStage] = useState<number>(0)
   const startRef = useRef<number>(0)
 
@@ -108,13 +109,13 @@ function LoadingIndicator({ serverConnected }: LoadingIndicatorProps) {
         />
       </div>
       <span className="text-sm text-va-ink-muted/50 dark:text-[#8f877c]/50">
-        {!serverConnected && rawStage <= 1 && "Connexion au serveur IA…"}
-        {!serverConnected && rawStage === 2 && "Le serveur tarde un peu…"}
-        {!serverConnected && rawStage === 3 && "Le serveur ne répond pas — n'hésite pas à réessayer"}
-        {serverConnected && rawStage === 0 && "Le modèle IA démarre…"}
-        {serverConnected && rawStage === 1 && "Le modèle IA rédige le résumé…"}
-        {serverConnected && rawStage === 2 && "Modèle gratuit un peu lent, patience…"}
-        {serverConnected && rawStage === 3 && "Le modèle tarde — n'hésite pas à réessayer"}
+        {!serverConnected && rawStage <= 1 && t('loading.connecting')}
+        {!serverConnected && rawStage === 2 && t('loading.serverSlow')}
+        {!serverConnected && rawStage === 3 && t('loading.serverUnreachable')}
+        {serverConnected && rawStage === 0 && t('loading.modelStarting')}
+        {serverConnected && rawStage === 1 && t('loading.modelWriting')}
+        {serverConnected && rawStage === 2 && t('loading.modelSlow')}
+        {serverConnected && rawStage === 3 && t('loading.modelLate')}
       </span>
     </div>
   )
@@ -133,6 +134,7 @@ export function SummaryModal({
   serverConnected = false,
   generationId,
 }: SummaryModalProps) {
+  const { t } = useT()
   const parts = summary
     ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/)
     : [summary, '']
@@ -172,11 +174,11 @@ export function SummaryModal({
         <div className="flex shrink-0 items-start justify-between border-b border-va-mist/50 p-6 dark:border-white/10">
           <div>
             <p className="font-reading text-[11px] font-semibold uppercase tracking-[0.22em] text-va-ink-muted dark:text-[#a9a29a] mb-2">
-              Résumé IA
+              {t('summary.title')}
               {cached && (
                 <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-va-mist/60 bg-va-mist/20 px-2 py-0.5 text-[9px] font-medium tracking-normal text-va-ink-muted/70 dark:border-white/10 dark:bg-white/5 dark:text-[#8f877c]">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-va-teal/60" />
-                  en cache
+                  {t('summary.cached')}
                 </span>
               )}
             </p>
@@ -194,7 +196,6 @@ export function SummaryModal({
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Indicateur de chargement — sous-composant avec key pour reset state */}
               {isLoading && !hasContent && (
                 <LoadingIndicator
                   key={generationId}
@@ -202,14 +203,12 @@ export function SummaryModal({
                 />
               )}
 
-              {/* Contenu avec animation d'apparition */}
               {hasContent && (
                 <div className="motion-safe:animate-[content-fade-in_350ms_ease-out_both]">
                   {renderMarkdown(mainSummary || '', isLoading && !insight)}
                 </div>
               )}
 
-              {/* Bloc Avis — animé dans tous les cas (cache = plus rapide) */}
               {insight && (
                 <div className={[
                   'mt-6 p-5 rounded-xl border',
@@ -233,14 +232,14 @@ export function SummaryModal({
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center rounded-xl border border-va-mist bg-white/90 px-4 py-2.5 font-reading text-sm font-semibold text-va-ink-soft transition hover:border-va-rust/40 hover:bg-va-paper-deep/50 focus:outline-none dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist dark:hover:bg-zinc-900/60"
           >
-            Lire la source complète
+            {t('summary.readSource')}
           </a>
           <button
             type="button"
             onClick={onClose}
             className="inline-flex items-center justify-center rounded-xl bg-va-ink px-4 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_14px_34px_-20px_rgb(16_21_32/0.9)] transition hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
           >
-            Fermer
+            {t('summary.close')}
           </button>
         </div>
       </div>

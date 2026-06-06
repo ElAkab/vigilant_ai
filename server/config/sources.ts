@@ -61,6 +61,19 @@ export const RSS_SOURCES: RssSource[] = [
 		url: "https://www.france24.com/fr/actualites/rss",
 		categorie: "Géopolitique",
 	},
+	{
+		id: "al-jazeera-en",
+		label: "Al Jazeera (EN)",
+		url: "https://www.aljazeera.com/xml/rss/all.xml",
+		categorie: "Géopolitique",
+	},
+	{
+		id: "al-jazeera-ar",
+		label: "Al Jazeera (AR)",
+		url: "https://www.aljazeera.net/aljazeerarss/rss.aspx?url=rss-news.xml",
+		categorie: "Géopolitique",
+		timeoutMs: 12_000, // Le flux arabe peut être plus lent
+	},
 
 	// ── Jeux vidéo ───────────────────────────────────────────────────
 	{

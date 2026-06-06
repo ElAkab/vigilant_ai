@@ -3,6 +3,7 @@ import type { Article } from '../types/article'
 export type SummarizeArticleParams = {
   article: Article
   maxLength?: number
+  lang?: string
 }
 
 export type SummarizeArticleResult = {
@@ -20,7 +21,7 @@ export type SummarizeArticleStreamParams = SummarizeArticleParams & {
 export async function summarizeArticle(
   params: SummarizeArticleParams,
 ): Promise<SummarizeArticleResult> {
-  const { article, maxLength = 280 } = params
+  const { article, maxLength = 280, lang } = params
 
   const res = await fetch('/api/summarize', {
     method: 'POST',
@@ -28,7 +29,7 @@ export async function summarizeArticle(
       'content-type': 'application/json',
       accept: 'application/json',
     },
-    body: JSON.stringify({ article, maxLength }),
+    body: JSON.stringify({ article, maxLength, lang }),
   })
 
   if (!res.ok) {
@@ -51,7 +52,7 @@ export async function summarizeArticle(
 export async function summarizeArticleStream(
   params: SummarizeArticleStreamParams,
 ): Promise<SummarizeArticleResult> {
-  const { article, maxLength = 280, onDelta, onMeta, signal, timeoutMs = 90_000 } = params
+  const { article, maxLength = 280, onDelta, onMeta, signal, timeoutMs = 90_000, lang } = params
 
   const res = await fetch('/api/summarize/stream', {
     method: 'POST',
@@ -59,7 +60,7 @@ export async function summarizeArticleStream(
       'content-type': 'application/json',
       accept: 'text/event-stream',
     },
-    body: JSON.stringify({ article, maxLength }),
+    body: JSON.stringify({ article, maxLength, lang }),
     signal,
   })
 

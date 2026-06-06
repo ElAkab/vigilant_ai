@@ -2,6 +2,15 @@ import { memo } from "react";
 
 import { safeHostname } from "../lib/url";
 import type { Article } from "../types/article";
+import { useT } from "../i18n/LanguageContext";
+import type { Lang } from "../i18n/types";
+
+const LOCALES: Record<Lang, string> = {
+  fr: 'fr-FR',
+  en: 'en-US',
+  nl: 'nl-NL',
+  ar: 'ar-SA',
+}
 
 type ArticleCardProps = {
 	article: Article;
@@ -12,10 +21,12 @@ function ArticleCardComponent({
 	article,
 	onGenerateSummary,
 }: ArticleCardProps) {
+	const { t, lang } = useT();
+	const locale = LOCALES[lang];
 	const date = new Date(article.datePublication);
 	const dateAffichee = Number.isNaN(date.getTime())
 		? article.datePublication
-		: new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date);
+		: new Intl.DateTimeFormat(locale, { dateStyle: "long" }).format(date);
 
 	const host = safeHostname(article.urlSource);
 
@@ -35,7 +46,7 @@ function ArticleCardComponent({
 				) : (
 					<div className="relative h-44 w-full shrink-0 overflow-hidden rounded-xl bg-linear-to-br from-va-rust/15 to-va-teal/15 dark:from-va-rust/10 dark:to-va-teal/10 flex items-center justify-center border border-va-mist/30 dark:border-white/5">
 						<span className="font-display text-base font-semibold tracking-wide text-va-ink-soft dark:text-[#d6cec3]">
-							{article.sourceLabel || host || "Source"}
+							{article.sourceLabel || host || t('article.sourceFallback')}
 						</span>
 					</div>
 				)}
@@ -57,10 +68,10 @@ function ArticleCardComponent({
 					<div className="flex flex-wrap items-center justify-between gap-3">
 						<div className="flex flex-col gap-1">
 							<span className="font-reading text-xs text-va-ink-muted dark:text-[#8f877c]">
-								{article.sourceLabel || "Veille sémantique"}
+								{article.sourceLabel || t('article.sourceFallback')}
 							</span>
 							<p className="font-reading text-xs text-va-ink-muted dark:text-[#b8b0a5]">
-								Publié le{" "}
+								{t('article.publishedOn')}{" "}
 								<time
 									dateTime={article.datePublication}
 									className="font-semibold text-va-ink-soft dark:text-[#e4dcd1]"
@@ -78,7 +89,7 @@ function ArticleCardComponent({
 								}}
 								className="inline-flex items-center justify-center gap-2 rounded-xl bg-va-ink px-5 py-2.5 font-reading text-sm font-semibold text-va-paper shadow-[0_12px_30px_-18px_rgb(16_21_32/0.85)] transition-[transform,background-color,box-shadow] duration-200 hover:-translate-y-0.5 hover:bg-va-ink-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust-bright/80 dark:bg-[#f3eee6] dark:text-va-ink dark:hover:bg-white"
 							>
-								✨ Synthèse IA
+								{t('article.aiSummary')}
 							</button>
 							)}
 						</div>

@@ -14,6 +14,7 @@ type UseArticleSummaryState = {
 type GenerateSummaryParams = {
   article: Article
   maxLength?: number
+  lang?: string
 }
 
 const MAX_RETRIES = 2
