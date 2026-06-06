@@ -175,7 +175,7 @@ export function ArticlesPage() {
 		if (!selectedArticle) return
 		resetSummary()
 		setGenerationId((prev) => prev + 1)
-		generateSummaryV2({ article: selectedArticle, lang })
+		generateSummaryV2({ article: selectedArticle, lang, forceRefresh: true })
 	}, [selectedArticle, resetSummary, generateSummaryV2, lang])
 
 	// ── Pagination ──
