@@ -45,8 +45,8 @@ for (const [cat, sources] of Object.entries(CATEGORY_SOURCES)) {
   }
 }
 
-const selectBase =
-  'appearance-none truncate rounded-xl border border-va-mist bg-white/90 px-3 py-2 pr-8 font-reading text-sm text-va-ink-soft transition focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 hover:border-va-rust/40 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist base-select'
+export const selectBase =
+  'base-select appearance-none truncate rounded-xl border border-va-mist bg-white/90 px-3 py-2 pr-8 font-reading text-sm text-va-ink-soft transition focus:outline-none focus-visible:ring-2 focus-visible:ring-va-rust/40 hover:border-va-rust/40 dark:border-white/15 dark:bg-zinc-950/40 dark:text-va-mist'
 
 export function SearchBar({
   query,

@@ -1,6 +1,7 @@
 import { memo } from "react"
 import { useT } from "../i18n/LanguageContext"
 import { LANGS, LANG_LABELS, type Lang } from "../i18n/types"
+import { selectBase } from "./SearchBar"
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -78,11 +79,11 @@ function SandboxHeaderComponent({
 				)}
 
 				{/* ── Language Switcher ── */}
-				<div className="relative flex-shrink-0">
+				<div className="relative flex-shrink-0 min-w-[4.5rem]">
 					<select
 						value={lang}
 						onChange={(e) => setLang(e.target.value as Lang)}
-						className="appearance-none rounded-lg border border-va-mist/60 bg-white/70 px-2 py-1 pr-5 font-reading text-[10px] font-semibold uppercase tracking-wider text-va-ink-muted/70 transition hover:border-va-rust/40 focus:outline-none focus-visible:ring-1 focus-visible:ring-va-rust/40 dark:border-white/10 dark:bg-zinc-950/40 dark:text-[#8f877c]/70 dark:hover:border-white/20"
+						className={`${selectBase} w-full`}
 						title={t('lang.switcher')}
 					>
 						{LANGS.map((l) => (
@@ -92,7 +93,7 @@ function SandboxHeaderComponent({
 						))}
 					</select>
 					<svg
-						className="pointer-events-none absolute right-1 top-1/2 h-3 w-3 -translate-y-1/2 text-va-ink-muted/40"
+						className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-va-ink-muted/50"
 						xmlns="http://www.w3.org/2000/svg"
 						fill="none"
 						viewBox="0 0 24 24"
