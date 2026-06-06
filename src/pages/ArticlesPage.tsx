@@ -155,20 +155,18 @@ export function ArticlesPage() {
 		return () => clearInterval(interval)
 	}, [triggerReload])
 
-	// ── Gestion du résumé ──
+		// ── Gestion du résumé ──
 
-	const onGenerateSummary = useCallback(
-		(id: string) => {
-			resetSummary()
-			setGenerationId((prev) => prev + 1)
-			const article = items.find((a) => a.id === id)
-			if (!article) return
-			setSelectedId(id)
-			setIsModalOpen(true)
-					generateSummary({ article, lang })
-		},
-				[items, generateSummary, resetSummary, lang],
-	)
+		const onGenerateSummary = useCallback(
+			(article: Article) => {
+				resetSummary()
+				setGenerationId((prev) => prev + 1)
+				setSelectedId(article.id)
+				setIsModalOpen(true)
+				generateSummary({ article, lang })
+			},
+			[generateSummary, resetSummary, lang],
+		)
 
 	const onCloseModal = useCallback(() => {
 		setIsModalOpen(false)
