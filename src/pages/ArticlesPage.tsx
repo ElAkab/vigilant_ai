@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react"
 
 import { SandboxHeader } from "../components/SandboxHeader"
 import { SelectableArticleCard } from "../components/SelectableArticleCard"
+import { SummaryModal } from "../components/SummaryModal"
 import { SearchBar } from "../components/SearchBar"
 import { useArticles } from "../hooks/useArticles"
-import { useArticleSummary } from "../hooks/useArticleSummary"
+import { useArticleSummaryV2 } from "../hooks/useArticleSummary"
 import { useT } from "../i18n/LanguageContext"
 import type { Article, Categorie } from "../types/article"
 
@@ -47,7 +48,7 @@ export function ArticlesPage() {
 	const { t, lang } = useT()
 	const { items, total, loading, error, reload, newArticleCount, resetNewCount } =
 		useArticles()
-	const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null)
+	const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
 
 	const [filter, setFilter] = useState<FilterState>(readFilterFromURL)
 	const [searchInput, setSearchInput] = useState(filter.q)
@@ -55,7 +56,7 @@ export function ArticlesPage() {
 	// Synchroniser l'URL avec les filtres
 	useEffect(() => { writeFilterToURL(filter) }, [filter])
 
-	const { summary, loading: summaryLoading, error: summaryError, cached, serverConnected, generateSummary, reset: resetSummary } = useArticleSummary()
+	const { summaryMd, insight, loading: summaryLoading, error: summaryError, cached, generateSummaryV2, reset: resetSummary } = useArticleSummaryV2()
 	const [generationId, setGenerationId] = useState(0)
 
 	const pageSize = DEFAULT_PAGE_SIZE
@@ -146,28 +147,28 @@ export function ArticlesPage() {
 		return () => clearInterval(interval)
 	}, [triggerReload])
 
-	// ── Gestion du résumé (inline expand) ──
+	// ── Gestion du résumé (modale) ──
 
 	const onGenerateSummary = useCallback(
 		(article: Article) => {
-			if (expandedArticleId === article.id) {
+			if (selectedArticle?.id === article.id) {
 				// Même article → fermer
 				resetSummary()
-				setExpandedArticleId(null)
+				setSelectedArticle(null)
 				return
 			}
-			// Nouvel article → expand + lancer la génération
+			// Nouvel article → ouvrir modale + lancer la génération
 			resetSummary()
 			setGenerationId((prev) => prev + 1)
-			setExpandedArticleId(article.id)
-			generateSummary({ article, lang })
+			setSelectedArticle(article)
+			generateSummaryV2({ article, lang })
 		},
-		[generateSummary, resetSummary, lang, expandedArticleId],
+		[generateSummaryV2, resetSummary, lang, selectedArticle],
 	)
 
-	const onCollapseExpanded = useCallback(() => {
+	const onCloseModal = useCallback(() => {
 		resetSummary()
-		setExpandedArticleId(null)
+		setSelectedArticle(null)
 	}, [resetSummary])
 
 	// ── Pagination ──
@@ -318,17 +319,9 @@ export function ArticlesPage() {
 									<SelectableArticleCard
 										key={article.id}
 										article={article}
-										isSelected={article.id === expandedArticleId}
+										isSelected={article.id === selectedArticle?.id}
 										onGenerateSummary={onGenerateSummary}
 										styleIndex={index}
-										isExpanded={article.id === expandedArticleId}
-										summary={article.id === expandedArticleId ? summary : null}
-										summaryLoading={article.id === expandedArticleId ? summaryLoading : false}
-										summaryError={article.id === expandedArticleId ? summaryError : null}
-										summaryCached={article.id === expandedArticleId ? cached : false}
-										serverConnected={article.id === expandedArticleId ? serverConnected : false}
-										generationId={generationId}
-										onCollapse={onCollapseExpanded}
 									/>
 								))
 							)}
@@ -392,6 +385,18 @@ export function ArticlesPage() {
 					</section>
 				</div>
 			</div>
+
+			<SummaryModal
+				isOpen={selectedArticle !== null}
+				onClose={onCloseModal}
+				article={selectedArticle}
+				summaryMd={summaryMd}
+				insight={insight}
+				isLoading={summaryLoading}
+				error={summaryError}
+				cached={cached}
+				generationId={generationId}
+			/>
 		</main>
 	)
 }

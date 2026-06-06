@@ -1,6 +1,6 @@
 import { errorResponse } from "./lib/http";
 import { handleListArticles, handleRefreshRss, fetchAndUpsertAllSources } from "./routes/articles";
-import { handleSummarize, handleSummarizeStream } from "./routes/summarize";
+import { handleSummarize, handleSummarizeStream, handleSummarizeV2, handleSummarizeV2Stream } from "./routes/summarize";
 import { handleTranslate } from "./routes/translate";
 import { handleGetModelStatus } from "./routes/debug";
 import { globalAIService } from "./lib/aiService";
@@ -61,6 +61,8 @@ function route(req: Request): Promise<Response> | Response {
 		// Routes API
 		if (pathname === "/api/articles") return handleListArticles(req);
 		if (pathname === "/api/rss/refresh") return handleRefreshRss(req);
+		if (pathname === "/api/summarize/v2/stream") return handleSummarizeV2Stream(req);
+		if (pathname === "/api/summarize/v2") return handleSummarizeV2(req);
 		if (pathname === "/api/summarize") return handleSummarize(req);
 		if (pathname === "/api/summarize/stream") return handleSummarizeStream(req);
 		if (pathname === "/api/translate") return handleTranslate(req);

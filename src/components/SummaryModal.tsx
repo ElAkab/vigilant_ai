@@ -6,7 +6,9 @@ type SummaryModalProps = {
   isOpen: boolean
   onClose: () => void
   article: Article | null
-  summary: string | null
+  summary?: string | null       // ← compatibilité v1 (texte brut avec <!-- insight -->)
+  summaryMd?: string | null    // ← v2 : synthèse markdown
+  insight?: string | null      // ← v2 : note IA
   isLoading: boolean
   error: string | null
   cached?: boolean
@@ -128,6 +130,8 @@ export function SummaryModal({
   onClose,
   article,
   summary,
+  summaryMd,
+  insight,
   isLoading,
   error,
   cached = false,
@@ -135,15 +139,21 @@ export function SummaryModal({
   generationId,
 }: SummaryModalProps) {
   const { t } = useT()
-  const parts = summary
-    ? summary.split(/### 💡 L'avis(?: d'InsightStream)?/)
-    : [summary, '']
-  const mainSummary = parts[0]
-  const insight = parts[1]
-    ? parts[1].replace(/^ d'InsightStream/, '').trim()
-    : ''
 
-  const hasContent = summary !== null && summary.length > 0
+  // V2 : props structurées, pas de split nécessaire
+  // V1 : fallback sur le split <!-- insight --> du texte brut
+  const mainSummary = summaryMd ?? (() => {
+    if (!summary) return ''
+    const idx = summary.indexOf('<!-- insight -->')
+    return idx >= 0 ? summary.slice(0, idx) : summary
+  })()
+  const insightText = insight ?? (() => {
+    if (!summary) return ''
+    const idx = summary.indexOf('<!-- insight -->')
+    return idx >= 0 ? summary.slice(idx + '<!-- insight -->'.length).trim() : ''
+  })()
+
+  const hasContent = (mainSummary && mainSummary.length > 0) || (summary != null && summary.length > 0)
 
   // Fermer la modale avec Échap
   useEffect(() => {
@@ -205,11 +215,11 @@ export function SummaryModal({
 
               {hasContent && (
                 <div className="motion-safe:animate-[content-fade-in_350ms_ease-out_both]">
-                  {renderMarkdown(mainSummary || '', isLoading && !insight)}
+                  {renderMarkdown(mainSummary || '', isLoading && !insightText)}
                 </div>
               )}
 
-              {insight && (
+              {insightText && (
                 <div className={[
                   'mt-6 p-5 rounded-xl border',
                   'border-va-rust/30 bg-va-rust/5 dark:border-va-rust-bright/30 dark:bg-va-rust-bright/5',
@@ -217,7 +227,7 @@ export function SummaryModal({
                     ? 'motion-safe:animate-[insight-appear_250ms_ease-out_both]'
                     : 'motion-safe:animate-[insight-appear_500ms_ease-out_both]',
                 ].join(' ')}>
-                  {renderMarkdown(insight)}
+                  {renderMarkdown(insightText)}
                 </div>
               )}
             </div>
