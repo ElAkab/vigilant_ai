@@ -1,5 +1,5 @@
 import { memo } from "react"
-import { useT } from "../i18n/LanguageContext"
+import { useT } from "../i18n/useT"
 import { LANGS, LANG_LABELS, type Lang } from "../i18n/types"
 import { selectBase } from "./SearchBar"
 

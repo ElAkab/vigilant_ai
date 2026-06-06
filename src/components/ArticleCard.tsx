@@ -2,7 +2,7 @@ import { memo } from "react";
 
 import { safeHostname } from "../lib/url";
 import type { Article } from "../types/article";
-import { useT } from "../i18n/LanguageContext";
+import { useT } from "../i18n/useT";
 import type { Lang } from "../i18n/types";
 import { useArticleTranslation } from "../hooks/useArticleTranslation";
 

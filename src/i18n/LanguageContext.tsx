@@ -1,21 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Lang } from './types'
 import { detectLang, storeLang } from './types'
 import { type TranslationMap } from './translations'
 import t from './translations'
-
-interface LanguageContextValue {
-  lang: Lang
-  setLang: (l: Lang) => void
-  /** Traduit une clé. Retourne la clé elle-même si non trouvée. */
-  t: (key: string) => string
-}
-
-const LanguageContext = createContext<LanguageContextValue>({
-  lang: 'en',
-  setLang: () => {},
-  t: (k) => k,
-})
+import { LanguageContext } from './LanguageContextValue'
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => detectLang())
@@ -50,9 +38,4 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       {children}
     </LanguageContext.Provider>
   )
-}
-
-export function useT() {
-  const ctx = useContext(LanguageContext)
-  return ctx
 }
