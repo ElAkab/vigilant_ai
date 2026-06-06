@@ -15,6 +15,7 @@ type GenerateSummaryParams = {
   article: Article
   maxLength?: number
   lang?: string
+  forceRefresh?: boolean // ignore le cache sessionStorage si true
 }
 
 const MAX_RETRIES = 2
@@ -208,10 +209,10 @@ export function useArticleSummaryV2() {
       abortRef.current = abort
       inFlightRef.current = params.article.id
 
-      // Vérifier le cache sessionStorage
+      // Vérifier le cache sessionStorage (sauf en mode forceRefresh)
       const cacheKey = `v2:${params.article.id}:${params.lang ?? 'fr'}`
       const cachedStr = getCached(cacheKey)
-      if (cachedStr) {
+      if (cachedStr && !params.forceRefresh) {
         try {
           const parsed = JSON.parse(cachedStr) as { summaryMd: string; insight: string }
           setState({
