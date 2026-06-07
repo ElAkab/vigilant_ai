@@ -24,6 +24,8 @@ dist-old*
 *.sln
 *.sw?
 .env
+.env.development
+.env.production
 .hermes/
 .vercel/
 yarn.lock

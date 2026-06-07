@@ -1,3 +1,6 @@
+// ⚠️ Chargement des variables d'environnement — DOIT être le premier import
+import "./lib/env";
+
 import { errorResponse } from "./lib/http";
 import { handleListArticles, handleRefreshRss, fetchAndUpsertAllSources } from "./routes/articles";
 import { handleSummarize, handleSummarizeStream, handleSummarizeV2, handleSummarizeV2Stream } from "./routes/summarize";
