@@ -34,4 +34,4 @@ if [ -d dist-build ]; then
 fi
 
 echo "[dev-start] Starting server on port 8788..."
-PORT=8788 $BUN server/index.ts
+APP_ENV=development PORT=8788 $BUN server/index.ts

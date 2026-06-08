@@ -2,7 +2,7 @@ import { Database } from 'bun:sqlite'
 import { mkdirSync } from 'node:fs'
 import type { Article, Categorie } from '../../src/types/article'
 
-const DB_PATH = 'server/data/articles.db'
+const DB_PATH = process.env.DB_PATH || 'server/data/articles.db'
 
 let db: Database | null = null
 

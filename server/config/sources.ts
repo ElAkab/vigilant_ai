@@ -8,7 +8,8 @@ export type RssSource = {
 	timeoutMs?: number; // défaut 8s si non spécifié
 };
 
-// MVP: une poignée de flux stables. Ajuste librement.
+// Toutes les sources RSS — identiques en dev et en prod.
+// Seules la clé API et la DB diffèrent selon APP_ENV.
 export const RSS_SOURCES: RssSource[] = [
 	// ── Tech ──────────────────────────────────────────────────────────
 	{

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "bun test",
     "preview": "vite preview",
-    "start:api": "bun server/index.ts"
+    "start:api": "bun server/index.ts",
+    "docs:update": "bash scripts/update-agent-docs.sh"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
