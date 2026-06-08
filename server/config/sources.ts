@@ -1,5 +1,4 @@
 import type { Categorie } from '../../src/types/article'
-import { RSS_SOURCES_DEV } from './sources.dev'
 
 export type RssSource = {
 	id: string;
@@ -9,8 +8,9 @@ export type RssSource = {
 	timeoutMs?: number; // défaut 8s si non spécifié
 };
 
-// MVP: une poignée de flux stables. Ajuste librement.
-const RSS_SOURCES_PROD: RssSource[] = [
+// Toutes les sources RSS — identiques en dev et en prod.
+// Seules la clé API et la DB diffèrent selon APP_ENV.
+export const RSS_SOURCES: RssSource[] = [
 	// ── Tech ──────────────────────────────────────────────────────────
 	{
 		id: "openai-blog",
@@ -90,11 +90,3 @@ const RSS_SOURCES_PROD: RssSource[] = [
 		categorie: "Jeux vidéo",
 	},
 ];
-
-/** Sources RSS actives selon l'environnement.
- *  APP_ENV=development → sous-ensemble réduit (3 sources)
- *  Sinon → toutes les sources (production)
- */
-const isDev = process.env.APP_ENV === "development";
-export const RSS_SOURCES: RssSource[] =
-	isDev ? RSS_SOURCES_DEV : RSS_SOURCES_PROD;

@@ -87,8 +87,9 @@ vigilant_ai/
 ## 🌍 Environnements
 
 La variable `APP_ENV` pilote tout :
-- `APP_ENV=development` → charge `.env.development` (clé OpenRouter DEV, DB séparée, flux RSS réduits, port 8788)
-- `APP_ENV=production` → charge `.env.production` (clé OpenRouter PROD, DB séparée, tous les flux, port 8787)
+- `APP_ENV=development` → charge `.env.development` (clé OpenRouter DEV, DB séparée)
+- `APP_ENV=production` → charge `.env.production` (clé OpenRouter PROD)
+- Les sources RSS sont identiques (12) dans les deux environnements
 
 **Variables d'environnement documentées dans `.env.example` :**
 - `OPENROUTER_API_KEY` — Clé API OpenRouter (obligatoire)
