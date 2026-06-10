@@ -40,8 +40,6 @@ Rather than choosing ONE AI assistant, I've placed my **agent rules** in several
 
 This lets me switch from Cursor to VS Code to Antigravity **without losing my instructions** — every assistant knows how to code, what conventions to follow, and how to talk to me.
 
-> 💡 **Tip**: the rules are identical across all 3 files. If I modify one, the others stay in sync — like a DNS alias but for AI assistants. 😄
-
 ---
 
 ## 🧱 Architecture (from simple to technical)
